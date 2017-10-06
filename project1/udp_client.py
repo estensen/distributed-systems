@@ -3,7 +3,10 @@ import struct
 
 
 multicast_group = ("224.3.29.71", 10000)
-MSG = b"Hello, world!"
+ID = 1
+message = "{} wants the lock".format(ID)
+binary_message = bytes(message, encoding="ascii")
+print(binary_message)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(0.2)
@@ -13,8 +16,8 @@ sock.setsockopt(socket.IPPROTO_IP,
                 time_to_live)
 
 try:
-    print("Sending {!r}".format(MSG.decode("utf-8")))
-    sent = sock.sendto(MSG, multicast_group)
+    print("Sending {!r}".format(message))
+    sent = sock.sendto(binary_message, multicast_group)
 
     # Wait for responses from all recipients
     while True:
