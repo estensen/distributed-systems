@@ -1,5 +1,6 @@
 import socket
 
+
 port = int(input("Port: "))
 server_address = ("localhost", port)
 
@@ -9,7 +10,7 @@ sock.bind(server_address)
 
 while True:
     print("Waiting to receive msg")
-    data, address = sock.recvfrom(4096)
+    data, address = sock.recvfrom(16)
 
     print("Received {} bytes from {}".format(len(data), address))
     print(data.decode("utf-8"))
