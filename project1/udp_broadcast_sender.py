@@ -1,5 +1,4 @@
 import socket
-import sys
 from threading import Thread
 from time import sleep
 
@@ -9,6 +8,7 @@ port = 555
 ports = [5000, 5001]
 message = "lock{}".format(port)
 binary_message = bytes(message, encoding="ascii")
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
 def like_post():
@@ -23,35 +23,32 @@ def like_post():
 
 
 def acquire_lock():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        print("Sending {!r}".format(message))
-        received_ack_from = []
+    print("Sending {!r}".format(message))
+    received_ack_from = []
 
-        for p in ports:  # Not async yet
-            sock.sendto(binary_message, (ip, p))
+    for p in ports:  # Not async yet
+        sock.sendto(binary_message, (ip, p))
 
-            print("Waiting for response")
-            binary_data, server = sock.recvfrom(16)
-            data = binary_data.decode("utf-8")
+        print("Waiting for response")
+        binary_data, server = sock.recvfrom(16)
+        data = binary_data.decode("utf-8")
 
-            if data[:3] == "ack":
-                print("Received ack from " + str(p))
-                received_ack_from.append(p)
+        if data[:3] == "ack":
+            print("Received ack from " + str(p))
+            received_ack_from.append(p)
 
-            if len(ports) == len(received_ack_from):
-                print("Lock on file acquired")
-                like_post()
+        if len(ports) == len(received_ack_from):
+            print("Lock on file acquired")
+            like_post()
 
-    finally:
-        print("Closing socket")
-        sock.close()
-        sleep(3)
+    sleep(3)
 
 
 def acquire_locks():
     for i in range(5):
         acquire_lock()
+    print("Closing socket")
+    sock.close()
 
 
 def listening():
@@ -60,12 +57,8 @@ def listening():
         sleep(2)
 
 
-try:
-    threads = []
-    t1 = Thread(target=acquire_locks)
-    t1.start()
-    t2 = Thread(target=listening)
-    t2.start()
-
-finally:
-    print(sys.stderr, 'closing socket')
+threads = []
+t1 = Thread(target=acquire_locks)
+t1.start()
+t2 = Thread(target=listening)
+t2.start()
