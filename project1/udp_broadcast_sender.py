@@ -2,11 +2,11 @@ import socket
 
 
 ip = "localhost"
-port = int(input("Port: "))
+# port = int(input("Port: "))
+port = 555
 ports = [5000, 5001]
-message = "Want lock,{}".format(port)
+message = "lock{}".format(port)
 binary_message = bytes(message, encoding="ascii")
-print(binary_message)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -25,20 +25,23 @@ def like_post():
 def acquire_lock():
     try:
         print("Sending {!r}".format(message))
-        received_from = []
+        received_ack_from = []
 
         for p in ports:
             sock.sendto(binary_message, (ip, p))
-            received_from.append(p)
 
-        print("Waiting for response")
-        data, server = sock.recvfrom(16)
-        print("Received {!r}".format(data.decode("utf-8")))
+            print("Waiting for response")
+            binary_data, server = sock.recvfrom(16)
+            data = binary_data.decode("utf-8")
+            print("Received {!r}".format(data))
 
-        print("Received from:", received_from)
-        if len(ports) == len(received_from):
-            print("Lock on file acquired")
-            like_post()
+            if data[:3] == "ack":
+                print("Add")
+                received_ack_from.append(p)
+
+            if len(ports) == len(received_ack_from):
+                print("Lock on file acquired")
+                like_post()
 
     finally:
         print("Closing socket")
