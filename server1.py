@@ -1,13 +1,39 @@
 import socket 
 from threading import Thread 
-from SocketServer import ThreadingMixIn 
-import sys
+import sys #command line args
+
+###########################################################
+#
+# @Author: Albert Chen, Havard Anda Estensen
+# 
+# @Description: opens a server with NUM_CLIENTS
+# when it receives a message from a client, send
+# it to all other clients
+# 
+# @README:
+# Currently written in python 2, can switch to python 3
+#
+# To run the program: python server1.py <port>
+# Create as many client threads as required by NUM_CLIENT
+# python client.py <port1>
+# python client.py <port2>
+# ...
+#
+# Start sending messages on client threads, other clients
+# will receive the messages
+# exit on the client thread will exit the client
+#
+###########################################################
 
 connections = []
-threads = []
-port = 8000
+threads = [] #threads that create the initial socket connections
+listen_threads = [] #threads to listen to client threads, 1 thread for each client
+if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+else:
+    port = 12345 #default port if user doesn't enter one
+NUM_CLIENTS=3 #change to however many clients you want
 
-#TCP_PORT = int(sys.argv[1])
 BUFFER_SIZE = 1024
 
 def create_connection(port):
@@ -23,19 +49,38 @@ def create_connection(port):
     except:
         print("tcp server socket closed")
         tcp_server_socket.close()
-        
 
-for i in range(4): #establish connections to all clients first
+def listen_for_messages(connection):
+    print("Listening on connection", connection)
+    while True:
+        data = connection.recv(BUFFER_SIZE)
+        if (not data or data == "exit"): #if data is empty, it means client closed connection
+            print ("Client closed connection")
+            connection.close()
+            #remove client from the connection list
+            connections.remove(connection)
+            print("Updated connection list:", connections)
+            break
+
+        print("Received data", data, "from connection", connection)
+        #send the data to all the other clients
+        for other_connection in connections:
+            if other_connection != connection:
+                other_connection.send(data)
+
+for i in range(NUM_CLIENTS): #establish connections to all clients first
     t = Thread(target=create_connection, args=(port+i, ))
     threads.append(t)
     t.start()
 
-while True:
-    message = raw_input("Please enter a message to send to all clients");
-    #if message == "exit": TODO
-    print("list of connections", connections)
-    for connection in connections:
-        connection.send(message)
+for t in threads: #clean up threads
+    t.join()
+
+for i in range(NUM_CLIENTS): #establish a listen thread for all clients
+    t = Thread(target=listen_for_messages, args=(connections[i], ))
+    listen_threads.append(t)
+    t.start()
 
 for t in threads: #clean up threads
-    t.join() 
+    t.join()
+
