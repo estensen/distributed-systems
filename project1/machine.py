@@ -25,7 +25,7 @@ def like_post():
 
 def send_messages(connection):
     while True:
-        message = input("Please enter a message to send to all clients: ")
+        message = input("Please enter a message to send to all clients:\n")
         binary_message = bytes(message, encoding="ascii")
         connection.send(binary_message)
         if message == "exit":
@@ -35,13 +35,21 @@ def send_messages(connection):
 
 def listen_for_messages(connection):
     while True:
-        binary_data = connection.recv(BUFFER_SIZE)
-        data = binary_data.decode("utf-8")
-        if not data: #server closed connection
+        message_binary = connection.recv(BUFFER_SIZE)
+        message_str = message_binary.decode("utf-8")
+        message_arr = message_str.split(",")
+
+        if message_arr[0] == "lock":
+            print("Machine {} wants the lock".format(message_arr[1]))
+            response_str = "ack,{}".format(port)
+            response_binary = bytes(response_str, encoding="ascii")
+            connection.send(response_binary)
+
+        if not message_arr: # Server closed connection
             print("Server closed connection")
             connection.close()
             break
-        print("Received data", data)
+        print("Received message", message_str)
 
 
 t = Thread(target=send_messages, args=(tcpClient, ))

@@ -2,28 +2,6 @@ import socket
 from threading import Thread 
 import sys
 
-###########################################################
-#
-# @Author: Albert Chen, Havard Anda Estensen
-#
-# @Description: opens a server with NUM_CLIENTS
-# when it receives a message from a client, send
-# it to all other clients
-#
-# @README:
-# Currently written in python 2, can switch to python 3
-#
-# To run the program: python message_server.py <port>
-# Create as many client threads as required by NUM_CLIENT
-# python machine.py <port1>
-# python machine.py <port2>
-# ...
-#
-# Start sending messages on client threads, other clients
-# will receive the messages
-# exit on the client thread will exit the client
-#
-###########################################################
 
 connections = []
 threads = [] # Threads that create the initial socket connections
