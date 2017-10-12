@@ -10,25 +10,25 @@ if len(sys.argv) > 1:
     port = int(sys.argv[1])
 else:
     port = 12345  # Default port if user doesn't enter one
-NUM_CLIENTS = 2
+NUM_MACHINES = 2
 
 BUFFER_SIZE = 1024
 
 
 def create_connection(port):
-    print("connection thread created with port", port)
+    print("Connection thread created with port", port)
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # For some reason there's a timeout before sockets can be used again, reuseaddr fixes this problem
     tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         tcp_server_socket.bind(("localhost", port))
         tcp_server_socket.listen(1)
-        print("tcpserver calling accept on port ", port)
+        print("Tcpserver calling accept on port ", port)
         conn, addr = tcp_server_socket.accept()
-        print("appending to connections the following info: ", connections, addr)
+        print("Appending to connections the following info: ", connections, addr)
         connections.append(conn)
     finally:
-        print("closing setup socket (either executed properly or timed out")
+        print("Closing setup socket (either executed properly or timed out)")
         tcp_server_socket.close()
 
 
@@ -50,7 +50,7 @@ def listen_for_messages(connection):
                 other_connection.send(data)
 
 
-for i in range(NUM_CLIENTS):  # Establish connections to all clients first
+for i in range(NUM_MACHINES):  # Establish connections to all clients first
     t = Thread(target=create_connection, args=(port+i, ))
     threads.append(t)
     t.start()
@@ -58,7 +58,7 @@ for i in range(NUM_CLIENTS):  # Establish connections to all clients first
 for t in threads:  # Clean up threads
     t.join()
 
-for i in range(NUM_CLIENTS):  # Establish a listen thread for all clients
+for i in range(NUM_MACHINES):  # Establish a listen thread for all clients
     t = Thread(target=listen_for_messages, args=(connections[i], ))
     listen_threads.append(t)
     t.start()

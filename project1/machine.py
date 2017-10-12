@@ -2,9 +2,11 @@ import socket
 import sys
 from threading import Thread
 
+
 host = "localhost"
 port = int(sys.argv[1])
-BUFFER_SIZE = 1024 
+BUFFER_SIZE = 1024
+NUM_MACHINES = 2
 threads = []
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -25,15 +27,17 @@ def like_post():
 
 def send_messages(connection):
     while True:
-        message = input("Please enter a message to send to all clients:\n")
-        binary_message = bytes(message, encoding="ascii")
-        connection.send(binary_message)
-        if message == "exit":
+        user_input = input("Please enter a message to send to all clients:\n")
+        message_str = user_input + ",{}".format(port)
+        message_binary = bytes(message_str, encoding="ascii")
+        connection.send(message_binary)
+        if message_str == "exit":
             connection.close()
             break
 
 
 def listen_for_messages(connection):
+    acks = []  # Can currently only handle one lock request from each machine at a time.
     while True:
         message_binary = connection.recv(BUFFER_SIZE)
         message_str = message_binary.decode("utf-8")
@@ -45,11 +49,20 @@ def listen_for_messages(connection):
             response_binary = bytes(response_str, encoding="ascii")
             connection.send(response_binary)
 
+        if message_arr[0] == "ack":
+            print("Ack received from {}".format(message_arr[1]))
+            acks.append(message_arr[1])
+
         if not message_arr: # Server closed connection
             print("Server closed connection")
             connection.close()
             break
         print("Received message", message_str)
+
+        if len(acks) == NUM_MACHINES - 1:
+            print("Lock acquired!")
+            like_post()
+            acks = []
 
 
 t = Thread(target=send_messages, args=(tcpClient, ))
