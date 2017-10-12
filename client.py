@@ -14,8 +14,9 @@ tcpClient.connect((host, port))
 def send_messages(connection):
     while True:
         message = raw_input("Please enter a message to send to all clients: ");
-        tcpClient.send(message);
+        connection.send(message);
         if (message == "exit"):
+            connection.close()
             break
 
 def listen_for_messages(connection):
@@ -23,7 +24,7 @@ def listen_for_messages(connection):
         data = connection.recv(BUFFER_SIZE)
         if not data: #server closed connection
             print ("Server closed connection")
-            tcpClient.close()
+            connection.close()
             break
         print ("Received data", data)
 
@@ -36,3 +37,4 @@ t.start()
 
 for t in threads:
     t.join()
+tcpClient.close()

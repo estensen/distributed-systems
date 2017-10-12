@@ -1,4 +1,4 @@
-import socket 
+import socket
 from threading import Thread 
 import sys #command line args
 
@@ -39,6 +39,8 @@ BUFFER_SIZE = 1024
 def create_connection(port):
     print("connection thread created with port", port)
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #for some reason there's a timeout before sockets can be used again, reuseaddr fixes this problem
+    tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
     try:
         tcp_server_socket.bind(("localhost", port))
         tcp_server_socket.listen(1)
@@ -46,8 +48,8 @@ def create_connection(port):
         conn, addr = tcp_server_socket.accept()
         print("appending to connections the following info: ", connections, addr)
         connections.append(conn)
-    except:
-        print("tcp server socket closed")
+    finally:
+        print("closing setup socket (either executed properly or timed out")
         tcp_server_socket.close()
 
 def listen_for_messages(connection):
