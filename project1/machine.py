@@ -11,6 +11,18 @@ tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
 
 
+def like_post():
+    # TODO: Make sure read and write are atomic
+    with open("likes.txt", "r+") as f:
+        current_likes = int(f.read())
+        print("Current likes:",current_likes)
+        new_likes = current_likes + 1
+        f.seek(0)
+        f.truncate()
+        f.write(str(new_likes))
+    f.close()
+
+
 def send_messages(connection):
     while True:
         message = input("Please enter a message to send to all clients: ")
