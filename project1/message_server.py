@@ -31,8 +31,8 @@ listen_threads = [] # Threads to listen to client threads, 1 thread for each cli
 if len(sys.argv) > 1:
     port = int(sys.argv[1])
 else:
-    port = 12345 # Default port if user doesn't enter one
-NUM_CLIENTS=3 # Change to however many clients you want
+    port = 12345  # Default port if user doesn't enter one
+NUM_CLIENTS = 2
 
 BUFFER_SIZE = 1024
 
@@ -55,36 +55,36 @@ def create_connection(port):
 
 
 def listen_for_messages(connection):
-    print("Listening on connection", connection)
+    print("Listening on connection")
     while True:
         data = connection.recv(BUFFER_SIZE)
-        if not data or data == "exit": # If data is empty, it means client closed connection
+        if not data or data == "exit":  # If data is empty, it means client closed connection
             print("Client closed connection")
             connection.close()
             connections.remove(connection)
-            print("Updated connection list:", connections)
+            print("Updated connection list:")
             break
 
-        print("Received data", data, "from connection", connection)
+        print("Received data", data.decode("utf-8"))
         # Send the data to all the other clients
         for other_connection in connections:
             if other_connection != connection:
                 other_connection.send(data)
 
 
-for i in range(NUM_CLIENTS): # Establish connections to all clients first
+for i in range(NUM_CLIENTS):  # Establish connections to all clients first
     t = Thread(target=create_connection, args=(port+i, ))
     threads.append(t)
     t.start()
 
-for t in threads: # Clean up threads
+for t in threads:  # Clean up threads
     t.join()
 
-for i in range(NUM_CLIENTS): # Establish a listen thread for all clients
+for i in range(NUM_CLIENTS):  # Establish a listen thread for all clients
     t = Thread(target=listen_for_messages, args=(connections[i], ))
     listen_threads.append(t)
     t.start()
 
-for t in threads: # Clean up threads
+for t in threads:  # Clean up threads
     t.join()
 

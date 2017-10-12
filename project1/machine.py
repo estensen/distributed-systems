@@ -13,9 +13,9 @@ tcpClient.connect((host, port))
 
 def send_messages(connection):
     while True:
-        message = raw_input("Please enter a message to send to all clients: ")
-        #binary_message = bytes(message, encoding="ascii")
-        connection.send(message)
+        message = input("Please enter a message to send to all clients: ")
+        binary_message = bytes(message, encoding="ascii")
+        connection.send(binary_message)
         if message == "exit":
             connection.close()
             break
@@ -23,13 +23,13 @@ def send_messages(connection):
 
 def listen_for_messages(connection):
     while True:
-        data = connection.recv(BUFFER_SIZE)
-        #data = binary_data.decode("utf-8")
+        binary_data = connection.recv(BUFFER_SIZE)
+        data = binary_data.decode("utf-8")
         if not data: #server closed connection
-            print ("Server closed connection")
+            print("Server closed connection")
             connection.close()
             break
-        print ("Received data", data)
+        print("Received data", data)
 
 
 t = Thread(target=send_messages, args=(tcpClient, ))
