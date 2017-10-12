@@ -37,7 +37,7 @@ def send_messages(connection):
 
 
 def listen_for_messages(connection):
-    acks = []  # Can currently only handle one lock request from each machine at a time.
+    acks = set()  # Can currently only handle one lock request from each machine at a time.
     while True:
         message_binary = connection.recv(BUFFER_SIZE)
         message_str = message_binary.decode("utf-8")
@@ -62,7 +62,7 @@ def listen_for_messages(connection):
         if len(acks) == NUM_MACHINES - 1:
             print("Lock acquired!")
             like_post()
-            acks = []
+            acks = set()
 
 
 t = Thread(target=send_messages, args=(tcpClient, ))
