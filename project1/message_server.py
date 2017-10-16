@@ -9,7 +9,6 @@ BUFFER_SIZE = 1024
 mutexes = []
 for i in range(NUM_MACHINES):
     mutexes.append(Lock())
-#mutex = Lock()
 
 connections = []
 for i in range(NUM_MACHINES):
@@ -38,7 +37,6 @@ def create_connection(my_port):
         print("Tcpserver calling accept on port ", my_port)
         conn, addr = tcp_server_socket.accept()
         print("Adding to connections the following info: ", connections, addr)
-        #connections.append(conn)
         index = my_port - port
         connections[index] = conn
     finally:
