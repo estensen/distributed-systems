@@ -1,6 +1,7 @@
 import socket
 import sys
-from threading import Thread, Lock
+from threading import Thread
+from multiprocessing import Lock
 from random import randint
 import time #time.sleep
 
@@ -16,6 +17,8 @@ want_resource = False
 want_resource_message = ""
 mutex = Lock()
 
+like_mutex = Lock()
+
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 tcpClient.connect((host, port))
 
@@ -24,21 +27,29 @@ def update_local_time(received_time):
     return max(local_time, received_time)
 
 def read_post():
-    with open("likes.txt", "r") as f:
-        current_likes = int(f.read())
-    f.close()
+    like_mutex.acquire()
+    try:
+        with open("likes.txt", "r") as f:
+            current_likes = int(f.read())
+        f.close()
+    finally:
+        like_mutex.release()
     return current_likes
 
 def like_post():
     # TODO: Make sure read and write are atomic
-    with open("likes.txt", "r+") as f:
-        current_likes = int(f.read())
-        print("Current likes:",current_likes)
-        new_likes = current_likes + 1
-        f.seek(0)
-        f.truncate()
-        f.write(str(new_likes))
-        print("New likes:",new_likes)
+    like_mutex.acquire()
+    try:
+        with open("likes.txt", "r+") as f:
+            current_likes = int(f.read())
+            print("Current likes:",current_likes)
+            new_likes = current_likes + 1
+            f.seek(0)
+            f.truncate()
+            f.write(str(new_likes))
+            print("New likes:",new_likes)
+    finally:
+            like_mutex.release()
     f.close()
 
 #returns true if my process should go first
