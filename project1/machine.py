@@ -26,33 +26,48 @@ tcpClient.connect((host, port))
 def update_local_time(received_time):
     return max(local_time, received_time)
 
-
 def read_post():
-    like_mutex.acquire()
-    try:
-        with open("likes.txt", "r") as f:
-            current_likes = int(f.read())
-        f.close()
-    finally:
-        like_mutex.release()
+    while (True):
+        like_mutex.acquire()
+        try:
+            with open("likes.txt", "r") as f:
+                result = f.read()
+                if not result:
+                    #print("COLLISION!!!")
+                    f.close()
+                    time.sleep(0.3)
+                    continue
+                else:
+                    current_likes = int(result)
+                    f.close()
+                    break
+        finally:
+            like_mutex.release()
     return current_likes
 
-
 def like_post():
-    like_mutex.acquire()
-    try:
-        with open("likes.txt", "r+") as f:
-            current_likes = int(f.read())
-            print("Current likes:",current_likes)
-            new_likes = current_likes + 1
-            f.seek(0)
-            f.truncate()
-            f.write(str(new_likes))
-            print("New likes:",new_likes)
-    finally:
-            like_mutex.release()
-    f.close()
-
+    # TODO: Make sure read and write are atomic
+    while (True):
+        like_mutex.acquire()
+        try:
+            with open("likes.txt", "r+") as f:
+                result = f.read()
+                if not result:
+                    #print("COLLISION!!!")
+                    f.close()
+                    time.sleep(0.3)
+                    continue
+                else:
+                    current_likes = int(result)
+                    print("Current likes:",current_likes)
+                    new_likes = current_likes + 1
+                    f.seek(0)
+                    f.truncate()
+                    f.write(str(new_likes))
+                    print("New likes:",new_likes)
+                    break
+        finally:
+                like_mutex.release()
 
 def return_true_if_earlier(my_request_with_EOM, other_request_with_EOM):
     my_request = my_request_with_EOM.replace("EOM","");
@@ -150,6 +165,7 @@ def listen_for_messages(connection):
             global local_time
             global want_resource
             global want_resource_message
+            global blocked_processes
             local_time += 1
             local_time = update_local_time(int(message_arr[1]))
             print("Local time: ", local_time)
@@ -163,7 +179,7 @@ def listen_for_messages(connection):
                 if (want_resource):
                     my_priority = return_true_if_earlier(want_resource_message,message_str)
                     if (my_priority):
-                        print("MY PROCESS IS EALIER, BLOCKING")
+                        print("MY PROCESS IS EARLIER, BLOCKING")
                         blocked_processes.append(response_binary)
                     else:
                         mutex.acquire()
@@ -194,7 +210,7 @@ def listen_for_messages(connection):
                         connection.send(response_binary)
                     finally:
                         mutex.release()
-
+                blocked_processes = []
 
 t = Thread(target=send_messages, args=(tcpClient, ))
 threads.append(t)
