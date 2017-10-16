@@ -1,5 +1,5 @@
 import socket
-from threading import Thread, Lock 
+from threading import Thread, Lock
 import sys
 import time
 
@@ -14,12 +14,17 @@ for i in range(NUM_MACHINES):
 connections = []
 for i in range(NUM_MACHINES):
     connections.append(0)
-threads = [] # Threads that create the initial socket connections
-listen_threads = [] # Threads to listen to client threads, 1 thread for each client
+threads = []
+listen_threads = []
 if len(sys.argv) > 1:
     port = int(sys.argv[1])
 else:
     port = 12345  # Default port if user doesn't enter one
+
+
+def reset_likes(filename):
+    with open(filename, 'w') as f:
+        f.write(str(0))
 
 
 def create_connection(my_port):
@@ -45,16 +50,14 @@ def listen_for_messages(connection, machine_index):
     print("Listening on connection")
     while True:
         data = connection.recv(BUFFER_SIZE)
-        if not data or data.decode("utf-8") == "exit":  # If data is empty, it means client closed connection
+        if not data or data.decode("utf-8") == "exit":
             print("Clients closed connection")
             for connection in connections:
                 connection.close()
-            #print("Updated connection list: {}".format(connections))
             break
 
         client_messages = data.decode("utf-8")
         client_message_list = client_messages.split("EOM")
-        #print ("client message list:", client_message_list)
 
         for i in range(len(client_message_list)-1):
             client_message = client_message_list[i]
@@ -62,26 +65,23 @@ def listen_for_messages(connection, machine_index):
             client_time = client_message.split(",")[1]
             client_port = client_message.split(",")[2]
 
-            print("Client message:", client_message)
-
-            #print useful log info
+            print("Client message: \"{}\"".format(client_message))
             print("Client: {} Local time: {} Command: {}".format(client_port, client_time, client_command))
 
-            #construct return message binary
             message_binary = bytes((client_message + "EOM"), encoding="ascii")
 
-            if (client_command == "like"):
-                time.sleep(5) #makes it easy to create collisions
-                for i in range(len(connections)):
-                    if connections[i] != connection:
+            if client_command == "like":
+                time.sleep(5)
+                for j in range(len(connections)):
+                    if connections[j] != connection:
                         mutexes[machine_index].acquire()
                         try:
-                            connections[i].send(message_binary)
+                            connections[j].send(message_binary)
                         finally:
                             mutexes[machine_index].release()
-            elif (client_command.split(" ")[0] == "ack"):
+            elif client_command.split(" ")[0] == "ack":
                 source_port = client_command.split(" ")[1]
-                #only send it to the correct source port
+                # Only send it to the correct source port
                 index = int(source_port) - int(port)
                 mutexes[machine_index].acquire()
                 try:
@@ -89,7 +89,9 @@ def listen_for_messages(connection, machine_index):
                 finally:
                     mutexes[machine_index].release()
                 print("sending {} back ack to {} index {}".format(message_binary.decode("utf-8"),source_port, index))
-        
+
+
+reset_likes("likes.txt")
 
 for i in range(NUM_MACHINES):  # Establish connections to all clients first
     t = Thread(target=create_connection, args=(port+i, ))
@@ -106,4 +108,3 @@ for i in range(NUM_MACHINES):  # Establish a listen thread for all clients
 
 for t in threads:  # Clean up threads
     t.join()
-
