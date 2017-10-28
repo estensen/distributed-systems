@@ -3,9 +3,9 @@ import sys
 from threading import Thread
 from multiprocessing import Lock
 from random import randint
-import time #time.sleep
+import time
 
-local_time = 0
+local_account_balance = 1000
 host = "localhost"
 port = int(sys.argv[1])
 process_id = port
@@ -25,6 +25,51 @@ tcpClient.connect((host, port))
 
 def update_local_time(received_time):
     return max(local_time, received_time)
+
+
+def transfer_money(to_client):
+    pass
+
+
+def save_local_state():
+    pass
+
+
+def record_incoming_msgs():
+    '''
+    When channel has received marker stop recording
+    When all channels has stopped recording send local state and state to the
+    machine that initialized the snapshot
+    1. Make dict for all incoming channels and array for those who hasn't
+    recieved a marker yet.
+    2. When processing msg from incoming_queue put in dict if no marker has been
+    recieved on that channel
+    3. When the array is empty the the local snapshot is complete
+    '''
+    pass
+
+
+def send_markers():
+    '''Send markers on all outgoing channels'''
+    pass
+
+
+def init_snapshot():
+    '''All incoming channels are empty'''
+    save_local_state()
+    send_markers()
+
+
+def start_snapshot():
+    '''
+    1. Save local snapshot
+    2. Send MARKERS on all outgoing channels
+    3. Listen for MARKERS on incomming channels
+    (have own thread for always listening)
+    '''
+    save_local_state()
+    send_markers()
+    record_incoming_msgs()
 
 
 def read_post():
@@ -144,7 +189,13 @@ def send_messages(connection):
 
 
 def listen_for_messages(connection):
-    acks = set()  # Can currently only handle one lock request from each machine at a time.
+    # TODO: Handle transfers and snapshot
+    '''
+    Snapshot
+    When receiving first MARKER on channel c
+    Save local state
+
+    '''
     while True:
         message_binary = connection.recv(BUFFER_SIZE)
         message_str = message_binary.decode("utf-8")
@@ -171,6 +222,9 @@ def listen_for_messages(connection):
             # local_time += 1
             local_time = update_local_time(int(message_arr[1]))
             print("Local time: ", local_time)
+
+            if message_arr[0] == "marker":
+
 
             if message_arr[0] == "like":
                 request_source_port = message_arr[2]
