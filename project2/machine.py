@@ -13,11 +13,6 @@ BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
 blocked_processes=[]
-want_resource = False
-want_resource_message = ""
-mutex = Lock()
-
-like_mutex = Lock()
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
@@ -72,49 +67,6 @@ def start_snapshot():
     record_incoming_msgs()
 
 
-def read_post():
-    while (True):
-        like_mutex.acquire()
-        try:
-            with open("likes.txt", "r") as f:
-                result = f.read()
-                if not result:
-                    f.close()
-                    time.sleep(0.3)
-                    continue
-                else:
-                    current_likes = int(result)
-                    f.close()
-                    break
-        finally:
-            like_mutex.release()
-    return current_likes
-
-
-def like_post():
-    # TODO: Make sure read and write are atomic
-    while True:
-        like_mutex.acquire()
-        try:
-            with open("likes.txt", "r+") as f:
-                result = f.read()
-                if not result:
-                    f.close()
-                    time.sleep(0.3)
-                    continue
-                else:
-                    current_likes = int(result)
-                    print("Current likes:", current_likes)
-                    new_likes = current_likes + 1
-                    f.seek(0)
-                    f.truncate()
-                    f.write(str(new_likes))
-                    print("New likes:", new_likes)
-                    break
-        finally:
-                like_mutex.release()
-
-
 def return_true_if_earlier(my_request_with_eom, other_request_with_eom):
     my_request = my_request_with_eom.replace("EOM","")
     other_request = other_request_with_eom.replace("EOM","")
@@ -139,49 +91,13 @@ def send_messages(connection):
     while True:
         user_input = input("Available commands: read, like, or exit\n")
 
-        global local_time
-        local_time += 1
         message_str = user_input + ",{},{}EOM".format(local_time, port)  # EOM (end of message) splits messages
         message_binary = bytes(message_str, encoding="ascii")
 
-        print("Local time:", local_time)
-        if user_input == "test":
-            mutex.acquire()
-            try:
-                connection.send(message_binary)
-            finally:
-                mutex.release()
-            mutex.acquire()
-            try:
-                connection.send(message_binary)
-            finally:
-                mutex.release()
-
-        elif user_input == "read":
-            print ("user called", user_input)
-            print("\"TESTCASE CONTENT\" Likes: {}".format(read_post()))
-            mutex.acquire()
-            try:
-                connection.send(message_binary)
-            finally:
-                mutex.release()
-        elif user_input == "like":
-            print("user called", user_input)
-            mutex.acquire()
-            try:
-                connection.send(message_binary)
-            finally:
-                mutex.release()
-            global want_resource
-            global want_resource_message
-            want_resource = True
-            want_resource_message = message_str
         elif user_input == "exit":
-            mutex.acquire()
             try:
                 connection.send(bytes("exit", encoding="ascii"))
             finally:
-                mutex.release()
             connection.close()
             break
         else:
@@ -231,42 +147,6 @@ def listen_for_messages(connection):
                 print("Machine {} wants the lock".format(request_source_port))
                 response_str = "ack {},{},{}EOM".format(request_source_port,local_time, port)
                 response_binary = bytes(response_str, encoding="ascii")
-
-                if want_resource:
-                    my_priority = return_true_if_earlier(want_resource_message,message_str)
-                    if my_priority:
-                        print("MY PROCESS IS EARLIER, BLOCKING")
-                        blocked_processes.append(response_binary)
-                    else:
-                        mutex.acquire()
-                        try:
-                            connection.send(response_binary)
-                        finally:
-                            mutex.release()
-                else:
-                    mutex.acquire()
-                    try:
-                        connection.send(response_binary)
-                    finally:
-                        mutex.release()
-
-            if message_arr[0].split(" ")[0] == "ack":
-                # TODO: Don't allow like_post() to be called if an ack that was not warranted is received.
-                print("Ack received from {}".format(message_arr[2]))
-                acks.add(message_arr[2])
-            if len(acks) == NUM_MACHINES - 1:
-                print("LOCK ACQUIRED!")
-                like_post()
-                acks = set()
-                want_resource = False
-                want_resource_message = ""
-                for response_binary in blocked_processes:
-                    mutex.acquire()
-                    try:
-                        connection.send(response_binary)
-                    finally:
-                        mutex.release()
-                blocked_processes = []
 
 
 t = Thread(target=send_messages, args=(tcpClient, ))

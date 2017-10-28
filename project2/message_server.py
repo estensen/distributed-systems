@@ -6,10 +6,6 @@ import time
 NUM_MACHINES = 4
 BUFFER_SIZE = 1024
 
-mutexes = []
-for i in range(NUM_MACHINES):
-    mutexes.append(Lock())
-
 connections = []
 for i in range(NUM_MACHINES):
     connections.append(0)
@@ -19,11 +15,6 @@ if len(sys.argv) > 1:
     port = int(sys.argv[1])
 else:
     port = 12345  # Default port if user doesn't enter one
-
-
-def reset_likes(filename):
-    with open(filename, 'w') as f:
-        f.write(str(0))
 
 
 def create_connection(my_port):
@@ -45,6 +36,10 @@ def create_connection(my_port):
 
 
 def listen_for_messages(connection, machine_index):
+    '''
+    A transaction should not be broadcasted to everyone
+    But markers should
+    '''
     print("Listening on connection")
     while True:
         data = connection.recv(BUFFER_SIZE)
@@ -88,8 +83,6 @@ def listen_for_messages(connection, machine_index):
                     mutexes[machine_index].release()
                 print("sending {} back ack to {} index {}".format(message_binary.decode("utf-8"),source_port, index))
 
-
-reset_likes("likes.txt")
 
 for i in range(NUM_MACHINES):  # Establish connections to all clients first
     t = Thread(target=create_connection, args=(port+i, ))
