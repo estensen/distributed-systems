@@ -9,11 +9,13 @@ local_account_balance = 1000
 host = "localhost"
 port = int(sys.argv[1])
 process_id = port
+
 BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
 outgoing_queue = []
 incoming_queue = []
+mutex = Lock()
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
@@ -52,8 +54,11 @@ def record_incoming_msgs():
 
 def send_markers():
     '''Send markers on all outgoing channels'''
+    mutex.acquire()
     try:
         connection.send(MARKER)
+    finally:
+        mutex.release()
 
 
 def init_snapshot():
@@ -75,9 +80,11 @@ def start_snapshot():
 
 
 def exit():
+    mutex.acquire()
     try:
         connection.send(bytes("exit", encoding="ascii"))
     finally:
+        mutex.release()
     connection.close()
     break
 
