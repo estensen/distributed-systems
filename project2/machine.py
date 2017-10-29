@@ -12,17 +12,21 @@ process_id = port
 BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
-blocked_processes=[]
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
 
 
-def update_local_time(received_time):
-    return max(local_time, received_time)
-
-
 def transfer_money(to_client):
+    pass
+
+
+def auto_transfer_money():
+    '''
+    Every 10 sec 0.2 probability of sending a random amountto another client
+    Don't send more money than you have
+    Add delay in message_server
+    '''
     pass
 
 
@@ -67,41 +71,29 @@ def start_snapshot():
     record_incoming_msgs()
 
 
-def return_true_if_earlier(my_request_with_eom, other_request_with_eom):
-    my_request = my_request_with_eom.replace("EOM","")
-    other_request = other_request_with_eom.replace("EOM","")
-    print("Comparing my request: {}, other request: {}".format(my_request, other_request))
-    my_time = int(my_request.split(",")[1])
-    other_time = int(other_request.split(",")[1])
-    if my_time < other_time:
-        return True
-    elif my_time > other_time:
-        return False
-    else:
-        my_id = int(my_request.split(",")[2])
-        other_id = int(other_request.split(",")[2])
-        if my_id < other_id:
-            return True
-        else:
-            return False
+def exit():
+    try:
+        connection.send(bytes("exit", encoding="ascii"))
+    finally:
+    connection.close()
+    break
 
 
 def send_messages(connection):
-    # Message format: "<command>,<port>,<local_time>
+    '''Message format: "<command>,<port>,<local_time>'''
     while True:
-        user_input = input("Available commands: read, like, or exit\n")
+        user_input = input("Available commands: snapshot and exit\n")
 
-        message_str = user_input + ",{},{}EOM".format(local_time, port)  # EOM (end of message) splits messages
+        # EOM (end of message) splits messages
+        message_str = user_input + ",{},{}EOM".format(local_time, port)
         message_binary = bytes(message_str, encoding="ascii")
 
+        if user_input == "snapshot:
+            init_snapshot()
         elif user_input == "exit":
-            try:
-                connection.send(bytes("exit", encoding="ascii"))
-            finally:
-            connection.close()
-            break
+            exit()
         else:
-            print("unrecognized command, please try read, like, or exit")
+            print("Unrecognized command, please try snapshot or exit")
 
 
 def listen_for_messages(connection):
@@ -130,12 +122,6 @@ def listen_for_messages(connection):
                 connection.close()
                 break
 
-            global local_time
-            global want_resource
-            global want_resource_message
-            global blocked_processes
-            # Uncomment if local time increases when sending acks
-            # local_time += 1
             local_time = update_local_time(int(message_arr[1]))
             print("Local time: ", local_time)
 
