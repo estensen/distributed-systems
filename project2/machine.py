@@ -10,6 +10,7 @@ host = "localhost"
 port = int(sys.argv[1])
 process_id = port
 
+MARKER = "marker"
 BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
@@ -52,11 +53,22 @@ def record_incoming_msgs():
     pass
 
 
+def message_to_string(msg):
+    pass
+
+
+def user_input_to_message(user_input):
+    # EOM (end of message) splits messages so they can be parsed correctly
+    message_str = user_input + ",{},{}EOM".format(local_time, port)
+    message_binary = bytes(message_str, encoding="ascii")
+
+
 def send_markers():
     '''Send markers on all outgoing channels'''
     mutex.acquire()
+    msg = user_input_to_message(MARKER)
     try:
-        connection.send(MARKER)
+        connection.send(msg)
     finally:
         mutex.release()
 
@@ -93,10 +105,6 @@ def process_outgoing_msgs(connection):
     '''Message format: "<command>,<port>,<local_time>'''
     while True:
         user_input = input("Available commands: snapshot and exit\n")
-
-        # EOM (end of message) splits messages so they can be parsed correctly
-        message_str = user_input + ",{},{}EOM".format(local_time, port)
-        message_binary = bytes(message_str, encoding="ascii")
 
         if user_input == "snapshot:
             init_snapshot(connection)
