@@ -14,9 +14,11 @@ MARKER = "marker"
 BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
+mutex = Lock()
+
 outgoing_queue = []
 incoming_queue = []
-mutex = Lock()
+ongoing_snapshots = {}
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
@@ -36,6 +38,7 @@ def auto_transfer_money():
 
 
 def save_local_state():
+    '''Dict with initiators id as key?'''
     pass
 
 
@@ -53,8 +56,10 @@ def record_incoming_msgs():
     pass
 
 
-def message_to_string(msg):
-    pass
+def receive_msg(connection):
+    message_binary = connection.recv(BUFFER_SIZE)
+    message_str = message_binary.decode("utf-8")
+    return message_str
 
 
 def user_input_to_message(user_input):
@@ -102,7 +107,12 @@ def exit():
 
 
 def process_outgoing_msgs(connection):
-    '''Message format: "<command>,<port>,<local_time>'''
+    '''
+    Old msg format: "<command>,<port>,<local_time>
+    New msg format: "<command>,<src_id>,<dst_id>,opt=<initiator_id>"
+    id = port
+    initiator_id if marker msg
+    '''
     while True:
         user_input = input("Available commands: snapshot and exit\n")
 
@@ -114,43 +124,47 @@ def process_outgoing_msgs(connection):
             print("Unrecognized command, please try snapshot or exit")
 
 
+def process_msg(msg):
+    msg_arr = msg.split(",")
+
+    command = msg_arr[0]
+
+    if command == "exit":
+        connection.close()
+        break
+
+    local_time = update_local_time(int(msg_arr[1]))
+    print("Local time: ", local_time)
+
+    elif command == "marker":
+        src_id = msg_arr[2]
+        initiator_id = msg_arr[3]
+        if ongoing_snapshots[initiator_id]:
+            if ongoing_snapshots[initiator_id][src_id]:
+                record_msg_to_channel_state(initiator_id, src_id, msg)
+        else:
+            # First marker to this machine
+            start_snapshot(initiator_id)
+
+
 def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
     '''
     Snapshot
     When receiving first MARKER on channel c
     Save local state
-
     '''
     while True:
-        message_binary = connection.recv(BUFFER_SIZE)
-        message_str = message_binary.decode("utf-8")
+        msg = recieve_msg(connection)
 
-        if not message_str:
+        if not msg:
             connection.close()
             break
 
-        message_list = message_str.split("EOM")
+        msg_list = msg.split("EOM")  # Because msgs can arrive in chunks
 
-        for i in range(len(message_list)-1):
-            individual_message = message_list[i]
-            message_arr = individual_message.split(",")
-
-            if message_arr[0] == "exit":
-                connection.close()
-                break
-
-            local_time = update_local_time(int(message_arr[1]))
-            print("Local time: ", local_time)
-
-            if message_arr[0] == "marker":
-
-
-            if message_arr[0] == "like":
-                request_source_port = message_arr[2]
-                print("Machine {} wants the lock".format(request_source_port))
-                response_str = "ack {},{},{}EOM".format(request_source_port,local_time, port)
-                response_binary = bytes(response_str, encoding="ascii")
+        for i in range(len(msg_list)-1):
+            process_msg(msg_list[i])
 
 
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
