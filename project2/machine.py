@@ -12,6 +12,8 @@ process_id = port
 BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
+outgoing_queue = []
+incoming_queue = []
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
@@ -50,7 +52,8 @@ def record_incoming_msgs():
 
 def send_markers():
     '''Send markers on all outgoing channels'''
-    pass
+    try:
+        connection.send(MARKER)
 
 
 def init_snapshot():
@@ -67,7 +70,7 @@ def start_snapshot():
     (have own thread for always listening)
     '''
     save_local_state()
-    send_markers()
+    send_markers(connection)
     record_incoming_msgs()
 
 
@@ -79,24 +82,24 @@ def exit():
     break
 
 
-def send_messages(connection):
+def process_outgoing_msgs(connection):
     '''Message format: "<command>,<port>,<local_time>'''
     while True:
         user_input = input("Available commands: snapshot and exit\n")
 
-        # EOM (end of message) splits messages
+        # EOM (end of message) splits messages so they can be parsed correctly
         message_str = user_input + ",{},{}EOM".format(local_time, port)
         message_binary = bytes(message_str, encoding="ascii")
 
         if user_input == "snapshot:
-            init_snapshot()
+            init_snapshot(connection)
         elif user_input == "exit":
-            exit()
+            exit(connection)
         else:
             print("Unrecognized command, please try snapshot or exit")
 
 
-def listen_for_messages(connection):
+def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
     '''
     Snapshot
@@ -135,13 +138,12 @@ def listen_for_messages(connection):
                 response_binary = bytes(response_str, encoding="ascii")
 
 
-t = Thread(target=send_messages, args=(tcpClient, ))
-threads.append(t)
-t.start()
+t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
+threads.append(t1)
 
-t = Thread(target=listen_for_messages, args=(tcpClient, ))
-threads.append(t)
-t.start()
+t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
+threads.append(t2)
+
 
 for t in threads:
     t.join()
