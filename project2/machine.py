@@ -24,8 +24,8 @@ tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
 
 
-def transfer_money(to_client):
-    pass
+def transfer_money(amount, to_client):
+    print("Transfered {} to {}".format(amount, to_client))
 
 
 def auto_transfer_money():
@@ -39,7 +39,7 @@ def auto_transfer_money():
 
 def save_local_state():
     '''Dict with initiators id as key?'''
-    pass
+    print("Local state saved")
 
 
 def record_incoming_msgs():
@@ -59,6 +59,7 @@ def record_incoming_msgs():
 def receive_msg(connection):
     message_binary = connection.recv(BUFFER_SIZE)
     message_str = message_binary.decode("utf-8")
+    print(message_str)
     return message_str
 
 
@@ -74,12 +75,14 @@ def send_markers():
     msg = user_input_to_message(MARKER)
     try:
         connection.send(msg)
+        print("MARKERS sent on all outgoing channels")
     finally:
         mutex.release()
 
 
 def init_snapshot():
     '''All incoming channels are empty'''
+    print("Initating snapshot")
     save_local_state()
     send_markers()
 
@@ -130,11 +133,9 @@ def process_msg(msg):
     command = msg_arr[0]
 
     if command == "exit":
+        print("Exiting...")
         connection.close()
         break
-
-    local_time = update_local_time(int(msg_arr[1]))
-    print("Local time: ", local_time)
 
     elif command == "marker":
         src_id = msg_arr[2]
@@ -142,6 +143,8 @@ def process_msg(msg):
         if ongoing_snapshots[initiator_id]:
             if ongoing_snapshots[initiator_id][src_id]:
                 record_msg_to_channel_state(initiator_id, src_id, msg)
+            else:
+                # Done, send local snapshot and channels to initiator
         else:
             # First marker to this machine
             start_snapshot(initiator_id)
@@ -149,6 +152,7 @@ def process_msg(msg):
 
 def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
+    # TODO: Handle recieve snapshots from other nodes when done
     '''
     Snapshot
     When receiving first MARKER on channel c
@@ -159,6 +163,7 @@ def process_incoming_msgs(connection):
 
         if not msg:
             connection.close()
+            print("Closing connection...")
             break
 
         msg_list = msg.split("EOM")  # Because msgs can arrive in chunks
