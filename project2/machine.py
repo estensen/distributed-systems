@@ -16,9 +16,8 @@ NUM_MACHINES = 4
 threads = []
 mutex = Lock()
 
-outgoing_queue = []
-incoming_queue = []
 ongoing_snapshots = {}
+channel_states = {}
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
@@ -42,7 +41,7 @@ def save_local_state():
     print("Local state saved")
 
 
-def record_incoming_msgs():
+def record_incoming_msgs(initiator_id):
     '''
     When channel has received marker stop recording
     When all channels has stopped recording send local state and state to the
@@ -53,7 +52,10 @@ def record_incoming_msgs():
     recieved on that channel
     3. When the array is empty the the local snapshot is complete
     '''
-    pass
+    # list comprehension to add list with all ids as keys except itself and initiator_id
+    ongoing_snapshots[initiator_id] = []
+    # list comprehension to add dict for all incoming channels
+    channel_states[initiator_id] = {}
 
 
 def receive_msg(connection):
@@ -67,6 +69,7 @@ def user_input_to_message(user_input):
     # EOM (end of message) splits messages so they can be parsed correctly
     message_str = user_input + ",{},{}EOM".format(local_time, port)
     message_binary = bytes(message_str, encoding="ascii")
+    return message_binary
 
 
 def send_markers():
@@ -112,15 +115,14 @@ def exit():
 def process_outgoing_msgs(connection):
     '''
     Old msg format: "<command>,<port>,<local_time>
-    New msg format: "<command>,<src_id>,<dst_id>,opt=<initiator_id>"
-    id = port
-    initiator_id if marker msg
+    New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
     '''
     while True:
         user_input = input("Available commands: snapshot and exit\n")
 
         if user_input == "snapshot:
             init_snapshot(connection)
+        # send_money
         elif user_input == "exit":
             exit(connection)
         else:
