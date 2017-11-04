@@ -60,10 +60,11 @@ def send_msg_to_all_clients(connection, machine_index, msg):
                 mutexes[machine_index].release()
 
 
-def parse_msg(connection, machine_index, msg):
-    client_command = msg.split(",")[0]
-    client_time = msg.split(",")[1]
-    client_port = msg.split(",")[2]
+def parse_msg(connection, machine_index, msg_string):
+    msg = msg_string.split(",")
+    client_command = msg[0]
+    client_time = msg[1]
+    client_port = msg[2]
 
     print("Client message: \"{}\"".format(client_message))
     print("Client: {} Local time: {} Command: {}".format(client_port, client_time, client_command))
