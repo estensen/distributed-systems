@@ -36,7 +36,17 @@ def create_connection(my_port):
 
 
 def send_msg_to_client(connection, msg, client):
-    pass
+    command = msg[0]
+    src_port = msg[1]
+    dst_port = msg[2]
+    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+    port_index = int(dst_port) - int(port)
+    mutexes.acquire[machine_index].acquire()
+    try:
+        connections[port_index].send(msg_binary)
+    finally:
+        mutexes[machine_index].release()
+    print("Sending \"{}\" from {} to {}".format(command, src_port, dst_port))
 
 
 def send_msg_to_all_clients(connection, machine_index, msg):
