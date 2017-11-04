@@ -41,6 +41,7 @@ def send_msg_to_client(connection, machine_index, msg):
     dst_port = msg[2]
     msg_binary = bytes((msg + "EOM"), encoding="ascii")
     port_index = int(dst_port) - int(port)
+
     mutexes.acquire[machine_index].acquire()
     try:
         connections[port_index].send(msg_binary)
@@ -50,7 +51,10 @@ def send_msg_to_client(connection, machine_index, msg):
 
 
 def send_msg_to_all_clients(connection, machine_index, msg):
+    command = msg[0]
+    src_port = msg[1]
     msg_binary = bytes((msg + "EOM"), encoding="ascii")
+
     for client in connections:
         if client != connection:  # Don't send message to yourself
             mutexes[machine_index].acquire()
@@ -58,18 +62,11 @@ def send_msg_to_all_clients(connection, machine_index, msg):
                 connections[i].send(msg_binary)
             finally:
                 mutexes[machine_index].release()
+    print("Sending \"{}\" from {} to all other clients".format(command, src_port))
 
 
-def parse_msg(connection, machine_index, msg_string):
-    msg = msg_string.split(",")
-    client_command = msg[0]
-    client_time = msg[1]
-    client_port = msg[2]
-
-    print("Client message: \"{}\"".format(client_message))
-    print("Client: {} Local time: {} Command: {}".format(client_port, client_time, client_command))
-
-    message_binary = bytes((client_message + "EOM"), encoding="ascii")
+def parse_msg(connection, machine_index, msg):
+    message_binary = bytes((msg + "EOM"), encoding="ascii")
 
     if client_command == "transaction":
         send_msg_to_client(connection, machine_index, msg)
@@ -77,6 +74,9 @@ def parse_msg(connection, machine_index, msg_string):
         send_msg_to_all_clients(connection, machine_index, msg)
     elif client_command == "local_snapshot":
         send_msg_to_client(connection, machine_index, msg)
+    else:
+        command = msg[0]
+        print("Command {} not recognized".format(command))
 
 
 def listen_for_messages(connection, machine_index):
@@ -93,12 +93,12 @@ def listen_for_messages(connection, machine_index):
                 connection.close()
             break
 
-        client_messages = data.decode("utf-8")
-        client_message_list = client_messages.split("EOM")
+        msgs_string = data.decode("utf-8")
+        msgs_list = msgs_string.split("EOM")
 
-        for i in range(len(client_message_list)-1):
-            client_message = client_message_list[i]
-            parse_msg(connection, machine_index, client_message)
+        for msg_string in msg_list:
+            msg = msg_str.split(",")
+            parse_msg(connection, machine_index, msg)
 
 
 for i in range(NUM_MACHINES):  # Establish connections to all clients first
