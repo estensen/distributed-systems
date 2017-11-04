@@ -35,7 +35,7 @@ def create_connection(my_port):
         tcp_server_socket.close()
 
 
-def send_msg_to_client(connection, msg, client):
+def send_msg_to_client(connection, machine_index, msg):
     command = msg[0]
     src_port = msg[1]
     dst_port = msg[2]
@@ -71,13 +71,11 @@ def parse_msg(connection, machine_index, msg):
     message_binary = bytes((client_message + "EOM"), encoding="ascii")
 
     if client_command == "transaction":
-        # Send to one client
-        pass
+        send_msg_to_client(connection, machine_index, msg)
     elif client_command == "marker":
         send_msg_to_all_clients(connection, machine_index, msg)
     elif client_command == "local_snapshot":
-        # Send to initiator of snapshot
-        pass
+        send_msg_to_client(connection, machine_index, msg)
 
 
 def listen_for_messages(connection, machine_index):
