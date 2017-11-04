@@ -71,7 +71,7 @@ def parse_msg(connection, machine_index, msg):
     command = msg[0]
     message_binary = bytes((msg + "EOM"), encoding="ascii")
 
-    if command == "transaction":
+    if isinstance(command, int):
         send_msg_to_client(connection, machine_index, msg)
     elif command == "marker":
         send_msg_to_all_clients(machine_index, msg)
