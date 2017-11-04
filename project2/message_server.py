@@ -35,12 +35,13 @@ def create_connection(my_port):
         tcp_server_socket.close()
 
 
-def send_msg_to_client(connection, machine_index, msg):
+def send_msg_to_client(machine_index, msg):
     command = msg[0]
     src_port = msg[1]
     dst_port = msg[2]
-    msg_binary = bytes((msg + "EOM"), encoding="ascii")
     port_index = int(dst_port) - int(port)
+    # This works because the ports are after each other
+    msg_binary = bytes((msg + "EOM"), encoding="ascii")
 
     mutexes.acquire[machine_index].acquire()
     try:
@@ -53,13 +54,14 @@ def send_msg_to_client(connection, machine_index, msg):
 def send_msg_to_all_clients(connection, machine_index, msg):
     command = msg[0]
     src_port = msg[1]
+
     msg_binary = bytes((msg + "EOM"), encoding="ascii")
 
     for client in connections:
         if client != connection:  # Don't send message to yourself
             mutexes[machine_index].acquire()
             try:
-                connections[i].send(msg_binary)
+                client.send(msg_binary)
             finally:
                 mutexes[machine_index].release()
     print("Sending \"{}\" from {} to all other clients".format(command, src_port))
@@ -71,9 +73,9 @@ def parse_msg(connection, machine_index, msg):
     if client_command == "transaction":
         send_msg_to_client(connection, machine_index, msg)
     elif client_command == "marker":
-        send_msg_to_all_clients(connection, machine_index, msg)
+        send_msg_to_all_clients(machine_index, msg)
     elif client_command == "local_snapshot":
-        send_msg_to_client(connection, machine_index, msg)
+        send_msg_to_client(machine_index, msg)
     else:
         command = msg[0]
         print("Command {} not recognized".format(command))
