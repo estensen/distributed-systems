@@ -68,13 +68,14 @@ def send_msg_to_all_clients(connection, machine_index, msg):
 
 
 def parse_msg(connection, machine_index, msg):
+    command = msg[0]
     message_binary = bytes((msg + "EOM"), encoding="ascii")
 
-    if client_command == "transaction":
+    if command == "transaction":
         send_msg_to_client(connection, machine_index, msg)
-    elif client_command == "marker":
+    elif command == "marker":
         send_msg_to_all_clients(machine_index, msg)
-    elif client_command == "local_snapshot":
+    elif command == "local_snapshot":
         send_msg_to_client(machine_index, msg)
     else:
         command = msg[0]
