@@ -46,25 +46,6 @@ def parse_msg(msg):
 
     message_binary = bytes((client_message + "EOM"), encoding="ascii")
 
-    if client_command == "like":
-        time.sleep(5)
-        for j in range(len(connections)):
-            if connections[j] != connection:
-                mutexes[machine_index].acquire()
-                try:
-                    connections[j].send(message_binary)
-                finally:
-                    mutexes[machine_index].release()
-    elif client_command.split(" ")[0] == "ack":
-        source_port = client_command.split(" ")[1]
-        # Only send it to the correct source port
-        index = int(source_port) - int(port)
-        mutexes[machine_index].acquire()
-        try:
-            connections[index].send(message_binary)
-        finally:
-            mutexes[machine_index].release()
-        print("sending {} back ack to {} index {}".format(message_binary.decode("utf-8"),source_port, index))
 
 
 def listen_for_messages(connection, machine_index):
