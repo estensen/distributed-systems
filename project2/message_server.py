@@ -46,12 +46,13 @@ def parse_msg(msg):
     message_binary = bytes((client_message + "EOM"), encoding="ascii")
 
     if client_command == "transaction":
+        # Send to one client
         pass
     elif client_command == "marker":
-        pass
-    elif client_command == "init_snapshot":
+        # Send to all clients
         pass
     elif client_command == "local_snapshot":
+        # Send to initiator of snapshot
         pass
 
 
