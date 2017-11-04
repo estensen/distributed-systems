@@ -35,7 +35,22 @@ def create_connection(my_port):
         tcp_server_socket.close()
 
 
-def parse_msg(msg):
+def send_msg_to_client(connection, msg, client):
+    pass
+
+
+def send_msg_to_all_clients(connection, machine_index, msg):
+    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+    for client in connections:
+        if client != connection:  # Don't send message to yourself
+            mutexes[machine_index].acquire()
+            try:
+                connections[i].send(msg_binary)
+            finally:
+                mutexes[machine_index].release()
+
+
+def parse_msg(connection, machine_index, msg):
     client_command = msg.split(",")[0]
     client_time = msg.split(",")[1]
     client_port = msg.split(",")[2]
@@ -49,8 +64,7 @@ def parse_msg(msg):
         # Send to one client
         pass
     elif client_command == "marker":
-        # Send to all clients
-        pass
+        send_msg_to_all_clients(connection, machine_index, msg)
     elif client_command == "local_snapshot":
         # Send to initiator of snapshot
         pass
@@ -75,7 +89,7 @@ def listen_for_messages(connection, machine_index):
 
         for i in range(len(client_message_list)-1):
             client_message = client_message_list[i]
-            parse(client_message)
+            parse_msg(connection, machine_index, client_message)
 
 
 for i in range(NUM_MACHINES):  # Establish connections to all clients first
