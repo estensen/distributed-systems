@@ -36,7 +36,6 @@ def create_connection(my_port):
 
 
 def parse_msg(msg):
-    msg
     client_command = msg.split(",")[0]
     client_time = msg.split(",")[1]
     client_port = msg.split(",")[2]
@@ -46,6 +45,14 @@ def parse_msg(msg):
 
     message_binary = bytes((client_message + "EOM"), encoding="ascii")
 
+    if client_command == "transaction":
+        pass
+    elif client_command == "marker":
+        pass
+    elif client_command == "init_snapshot":
+        pass
+    elif client_command == "local_snapshot":
+        pass
 
 
 def listen_for_messages(connection, machine_index):
