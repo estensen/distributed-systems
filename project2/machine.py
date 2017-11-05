@@ -113,7 +113,6 @@ def exit():
     finally:
         mutex.release()
     connection.close()
-    break
 
 
 def process_outgoing_msgs(connection):
@@ -124,7 +123,7 @@ def process_outgoing_msgs(connection):
     while True:
         user_input = input("Available commands: snapshot and exit\n")
 
-        if user_input == "snapshot:
+        if user_input == "snapshot":
             init_snapshot(connection)
         # send_money
         elif user_input == "exit":
@@ -141,7 +140,6 @@ def process_msg(msg):
     if command == "exit":
         print("Exiting...")
         connection.close()
-        break
 
     elif command == "marker":
         src_id = msg_arr[2]
@@ -151,6 +149,7 @@ def process_msg(msg):
                 record_msg_to_channel_state(initiator_id, src_id, msg)
             else:
                 # Done, send local snapshot and channels to initiator
+                pass
         else:
             # First marker to this machine
             start_snapshot(initiator_id)
