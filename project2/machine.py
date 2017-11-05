@@ -23,6 +23,12 @@ tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
 
 
+def wait_for_user_input():
+    while True:
+        user_input = input("Available commands: snapshot and exit\n")
+        return user_input
+
+
 def transfer_money(amount, to_client):
     print("Transfered {} to {}".format(amount, to_client))
 
@@ -173,6 +179,9 @@ def process_incoming_msgs(connection):
         for i in range(len(msg_list)-1):
             process_msg(msg_list[i])
 
+
+input_thread = Thread(target=wait_for_user_input)
+threads.append(input_thread)
 
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
 threads.append(t1)
