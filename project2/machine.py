@@ -2,13 +2,14 @@ import socket
 import sys
 from threading import Thread
 from multiprocessing import Lock
-from random import choice, randint
+from random import randint
 import time
 
 local_account_balance = 1000
 host = "localhost"
 port = int(sys.argv[1])
 process_id = port
+user_id = process_id
 
 MARKER = "marker"
 BUFFER_SIZE = 1024
@@ -16,7 +17,10 @@ NUM_MACHINES = 4
 threads = []
 mutex = Lock()
 
-ongoing_snapshots = {}
+ongoing_snapshots = []
+# Need to initialize other_clients process ids
+other_clients = []
+''' Dictionary with initiator_id as key '''
 channel_states = {}
 
 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,24 +28,28 @@ tcpClient.connect((host, port))
 
 
 def transfer_money(amount, to_client):
+    ''' Initiator id = 0 when only a transfer
+        msg format: <command>,<src_id>,<dst_id>,<initiator_id> '''
+    #Alternate msg format: msg = [amount, user_id, to_client, 0]
+    msg = [amount, user_id, to_client]
+    self.local_account_balance -= amount
+    msg_str = ", ".join(map(str,msg))
+    send_message(msg_str)
     print("Transfered {} to {}".format(amount, to_client))
 
 
 def auto_transfer_money():
     '''
-    Every 10 sec 0.2 probability of sending a random amount to another client
+    Every 10 sec 0.2 probability of sending a random amountto another client
     Don't send more money than you have
     Add delay in message_server
     '''
-    sleep(randint(10, 14))
-    random_amount = randint(1, 20)
-    random_client = choice(other_clients)
-    if local_account_balance > random_amount:
-        transfer_money(random_amount, random_client)
+    pass
 
 
-def save_local_state():
-    '''Dict with initiators id as key?'''
+def save_local_state(init_id):
+    '''Dict with initiators id as key'''
+    channel_states[init_id] = local_account_balance
     print("Local state saved")
 
 
@@ -69,6 +77,7 @@ def receive_msg(connection):
     return message_str
 
 
+###### Change format:
 def user_input_to_message(user_input):
     # EOM (end of message) splits messages so they can be parsed correctly
     message_str = user_input + ",{},{}EOM".format(local_time, port)
@@ -76,10 +85,24 @@ def user_input_to_message(user_input):
     return message_binary
 
 
-def send_markers():
+def send_message(message):
+    '''Send msg to message_server that is not a marker'''
+    mutex.acquire()
+    msg = user_input_to_message(message)
+    try:
+        connection.send(msg)
+        #print("MARKERS sent on all outgoing channels")
+    finally:
+        mutex.release()
+
+
+def send_markers(init_id):
     '''Send markers on all outgoing channels'''
     mutex.acquire()
-    msg = user_input_to_message(MARKER)
+    #msg_marker = [MARKER, user_id, 0, init_id]
+    msg_marker = [MARKER, user_id, init_id]
+    msg_marker_str = ", ".join(map(str,msg_marker))
+    msg = user_input_to_message(msg_marker_str)
     try:
         connection.send(msg)
         print("MARKERS sent on all outgoing channels")
@@ -90,20 +113,25 @@ def send_markers():
 def init_snapshot():
     '''All incoming channels are empty'''
     print("Initating snapshot")
-    save_local_state()
-    send_markers()
+    save_local_state(user_id)
+    send_markers(user_id)
+    start_snapshot(user_id)
 
 
-def start_snapshot():
+def start_snapshot(init_id):
     '''
     1. Save local snapshot
     2. Send MARKERS on all outgoing channels
     3. Listen for MARKERS on incomming channels
     (have own thread for always listening)
     '''
-    save_local_state()
-    send_markers(connection)
-    record_incoming_msgs()
+    ongoing_snapshots.append(init_id)
+    if init_id == user_id:
+        #record_incoming_msgs() - Check process_msg
+    else:    
+        save_local_state()
+        send_markers(init_id)
+        #record_incoming_msgs() - Check process_msg
 
 
 def exit():
@@ -113,6 +141,7 @@ def exit():
     finally:
         mutex.release()
     connection.close()
+    break
 
 
 def process_outgoing_msgs(connection):
@@ -122,8 +151,7 @@ def process_outgoing_msgs(connection):
     '''
     while True:
         user_input = input("Available commands: snapshot and exit\n")
-
-        if user_input == "snapshot":
+        if user_input == "snapshot:
             init_snapshot(connection)
         # send_money
         elif user_input == "exit":
@@ -140,19 +168,34 @@ def process_msg(msg):
     if command == "exit":
         print("Exiting...")
         connection.close()
+        break
 
     elif command == "marker":
-        src_id = msg_arr[2]
+        src_id = msg_arr[1]
         initiator_id = msg_arr[3]
-        if ongoing_snapshots[initiator_id]:
-            if ongoing_snapshots[initiator_id][src_id]:
-                record_msg_to_channel_state(initiator_id, src_id, msg)
-            else:
-                # Done, send local snapshot and channels to initiator
-                pass
+        ''' If second marker'''
+        if initiator_id in ongoing_snapshots:
+            ongoing_snapshots.remove(initiator_id)
+            # Send state to initiator
+            ''' snapshot = list of local_accout_balance + messages recorded'''
+            ''' snapshot msg format = "snapshot", src_id, recv_id, snapshot'''
+            snap = []
+            snapshot = channel_states[initiator_id]
+            snap = ["snapshot", user_id, initiator_id, snapshot]
+            snapshot_str = ", ".join(map(str,snap))
+            send_message(snapshot_str)
         else:
-            # First marker to this machine
             start_snapshot(initiator_id)
+
+    ''' If message being sent is a transaction
+        msg format = <amount><src_id><dest_id> '''
+    elif isinstance(command, int):
+        if command in ongoing_snapshots:
+            ''' Entering message into local state recording '''
+            state[initiator_id].append(msg)
+        else:
+            amount = int(command)
+            local_account_balance+=amount
 
 
 def process_incoming_msgs(connection):
@@ -182,9 +225,6 @@ threads.append(t1)
 
 t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
 threads.append(t2)
-
-t3 = Thread(target=auto_transfer_money)
-threads.append(t3)
 
 
 for t in threads:
