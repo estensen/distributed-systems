@@ -2,7 +2,7 @@ import socket
 import sys
 from threading import Thread
 from multiprocessing import Lock
-from random import randint
+from random import choice, randint
 import time
 
 local_account_balance = 1000
@@ -23,23 +23,21 @@ tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpClient.connect((host, port))
 
 
-def wait_for_user_input():
-    while True:
-        user_input = input("Available commands: snapshot and exit\n")
-        return user_input
-
-
 def transfer_money(amount, to_client):
     print("Transfered {} to {}".format(amount, to_client))
 
 
 def auto_transfer_money():
     '''
-    Every 10 sec 0.2 probability of sending a random amountto another client
+    Every 10 sec 0.2 probability of sending a random amount to another client
     Don't send more money than you have
     Add delay in message_server
     '''
-    pass
+    sleep(randint(10, 14))
+    random_amount = randint(1, 20)
+    random_client = choice(other_clients)
+    if local_account_balance > random_amount:
+        transfer_money(random_amount, random_client)
 
 
 def save_local_state():
@@ -180,14 +178,14 @@ def process_incoming_msgs(connection):
             process_msg(msg_list[i])
 
 
-input_thread = Thread(target=wait_for_user_input)
-threads.append(input_thread)
-
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
 threads.append(t1)
 
 t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
 threads.append(t2)
+
+t3 = Thread(target=auto_transfer_money)
+threads.append(t3)
 
 
 for t in threads:
