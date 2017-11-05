@@ -35,6 +35,53 @@ def create_connection(my_port):
         tcp_server_socket.close()
 
 
+def send_msg_to_client(machine_index, msg):
+    command = msg[0]
+    src_port = msg[1]
+    dst_port = msg[2]
+    port_index = int(dst_port) - int(port)
+    # This works because the ports are after each other
+    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+
+    mutexes.acquire[machine_index].acquire()
+    try:
+        connections[port_index].send(msg_binary)
+    finally:
+        mutexes[machine_index].release()
+    print("Sending \"{}\" from {} to {}".format(command, src_port, dst_port))
+
+
+def send_msg_to_all_clients(connection, machine_index, msg):
+    command = msg[0]
+    src_port = msg[1]
+
+    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+
+    for client in connections:
+        if client != connection:  # Don't send message to yourself
+            mutexes[machine_index].acquire()
+            try:
+                client.send(msg_binary)
+            finally:
+                mutexes[machine_index].release()
+    print("Sending \"{}\" from {} to all other clients".format(command, src_port))
+
+
+def parse_msg(connection, machine_index, msg):
+    command = msg[0]
+    message_binary = bytes((msg + "EOM"), encoding="ascii")
+
+    if isinstance(command, int):
+        send_msg_to_client(connection, machine_index, msg)
+    elif command == "marker":
+        send_msg_to_all_clients(machine_index, msg)
+    elif command == "local_snapshot":
+        send_msg_to_client(machine_index, msg)
+    else:
+        command = msg[0]
+        print("Command {} not recognized".format(command))
+
+
 def listen_for_messages(connection, machine_index):
     '''
     A transaction should not be broadcasted to everyone
@@ -49,39 +96,12 @@ def listen_for_messages(connection, machine_index):
                 connection.close()
             break
 
-        client_messages = data.decode("utf-8")
-        client_message_list = client_messages.split("EOM")
+        msgs_string = data.decode("utf-8")
+        msgs_list = msgs_string.split("EOM")
 
-        for i in range(len(client_message_list)-1):
-            client_message = client_message_list[i]
-            client_command = client_message.split(",")[0]
-            client_time = client_message.split(",")[1]
-            client_port = client_message.split(",")[2]
-
-            print("Client message: \"{}\"".format(client_message))
-            print("Client: {} Local time: {} Command: {}".format(client_port, client_time, client_command))
-
-            message_binary = bytes((client_message + "EOM"), encoding="ascii")
-
-            if client_command == "like":
-                time.sleep(5)
-                for j in range(len(connections)):
-                    if connections[j] != connection:
-                        mutexes[machine_index].acquire()
-                        try:
-                            connections[j].send(message_binary)
-                        finally:
-                            mutexes[machine_index].release()
-            elif client_command.split(" ")[0] == "ack":
-                source_port = client_command.split(" ")[1]
-                # Only send it to the correct source port
-                index = int(source_port) - int(port)
-                mutexes[machine_index].acquire()
-                try:
-                    connections[index].send(message_binary)
-                finally:
-                    mutexes[machine_index].release()
-                print("sending {} back ack to {} index {}".format(message_binary.decode("utf-8"),source_port, index))
+        for msg_string in msg_list:
+            msg = msg_str.split(",")
+            parse_msg(connection, machine_index, msg)
 
 
 for i in range(NUM_MACHINES):  # Establish connections to all clients first
