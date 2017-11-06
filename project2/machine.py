@@ -3,7 +3,7 @@ import sys
 from threading import Thread
 from multiprocessing import Lock
 from random import choice, randint
-import time
+from time import sleep
 
 local_account_balance = 1000
 host = "localhost"
