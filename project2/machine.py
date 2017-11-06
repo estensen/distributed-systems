@@ -72,17 +72,18 @@ def receive_msg(connection):
     return message_str
 
 
-def user_input_to_message(user_input):
+def user_input_to_message(user_input, initiator_id):
     # EOM (end of message) splits messages so they can be parsed correctly
-    message_str = user_input + ",{},{}EOM".format(local_time, port)
+    # New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
+    message_str = user_input + ",{},{}EOM".format(port, initiator_id)
     message_binary = bytes(message_str, encoding="ascii")
     return message_binary
 
 
-def send_markers(connection):
+def send_markers(connection, initiator_id):
     '''Send markers on all outgoing channels'''
     mutex.acquire()
-    msg = user_input_to_message(MARKER)
+    msg = user_input_to_message(MARKER, initiator_id)
     try:
         connection.send(msg)
         print("MARKERS sent on all outgoing channels")
@@ -93,9 +94,10 @@ def send_markers(connection):
 def init_snapshot(connection):
     '''All incoming channels are empty'''
     print("Initating snapshot")
+    initiator_id = port
     save_local_state()
     final_snapshot = {}
-    send_markers(connection)
+    send_markers(connection, initiator_id)
 
 
 
