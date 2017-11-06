@@ -196,12 +196,15 @@ def process_incoming_msgs(connection):
 
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
 threads.append(t1)
+t1.start()
 
 t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
 threads.append(t2)
+t2.start()
 
 t3 = Thread(target=auto_transfer_money)
 threads.append(t3)
+t3.start()
 
 
 for t in threads:
