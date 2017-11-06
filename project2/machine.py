@@ -157,8 +157,8 @@ def process_msg(msg):
 
     elif command == "marker":
         initiator_id = int(msg_list[2])
-        if ongoing_snapshots[initiator_id]:
-            if ongoing_snapshots[initiator_id][src_id]:
+        if initiator_id in ongoing_snapshots:
+            if src_id in initiator_id in ongoing_snapshots:
                 record_msg_to_channel_state(initiator_id, src_id, msg)
             else:
                 # Done, send local snapshot and channels to initiator
