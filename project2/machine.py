@@ -142,15 +142,14 @@ def process_outgoing_msgs(connection):
 
 def process_msg(msg):
     msg_arr = msg.split(",")
-
     command = msg_arr[0]
+    src_id = msg_arr[1]
 
     if command == "exit":
         print("Exiting...")
         connection.close()
 
     elif command == "marker":
-        src_id = msg_arr[2]
         initiator_id = msg_arr[3]
         if ongoing_snapshots[initiator_id]:
             if ongoing_snapshots[initiator_id][src_id]:
@@ -163,7 +162,6 @@ def process_msg(msg):
             start_snapshot(initiator_id)
 
     elif command == "snapshot":
-        src_id = msg_arr[1]
         snapshot = msg_arr[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))
