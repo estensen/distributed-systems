@@ -168,6 +168,9 @@ def process_msg(msg):
         if len(final_snapshot) == len(other_clients):
             print_final_snapshot()
 
+    else:
+        print("Unknown command!")
+
 
 def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
