@@ -99,10 +99,10 @@ def listen_for_messages(connection, machine_index):
                 connection.close()
             break
 
-        msgs_string = data.decode("utf-8")
-        msgs_list = msgs_string.split("EOM")
+        msgs_str = data.decode("utf-8")
+        msgs_list = msgs_str.split("EOM")
 
-        for msg_string in msg_list:
+        for msg_str in msgs_list:
             msg = msg_str.split(",")
             parse_msg(connection, machine_index, msg)
 
