@@ -54,9 +54,9 @@ def record_incoming_msgs(initiator_id):
     When all channels has stopped recording send local state and state to the
     machine that initialized the snapshot
     1. Make dict for all incoming channels and array for those who hasn't
-    recieved a marker yet.
+    received a marker yet.
     2. When processing msg from incoming_queue put in dict if no marker has been
-    recieved on that channel
+    received on that channel
     3. When the array is empty the the local snapshot is complete
     '''
     # list comprehension to add list with all ids as keys except itself and initiator_id
@@ -176,14 +176,14 @@ def process_msg(msg):
 
 def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
-    # TODO: Handle recieve snapshots from other nodes when done
+    # TODO: Handle receive snapshots from other nodes when done
     '''
     Snapshot
     When receiving first MARKER on channel c
     Save local state
     '''
     while True:
-        msg = recieve_msg(connection)
+        msg = receive_msg(connection)
 
         if not msg:
             connection.close()
