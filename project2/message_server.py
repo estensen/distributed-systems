@@ -3,12 +3,15 @@ from threading import Thread, Lock
 import sys
 import time
 
-NUM_MACHINES = 4
+NUM_MACHINES = 2
 BUFFER_SIZE = 1024
 
+mutexes = []
 connections = []
 for i in range(NUM_MACHINES):
+    mutexes.append(Lock())
     connections.append(0)
+
 threads = []
 listen_threads = []
 if len(sys.argv) > 1:
