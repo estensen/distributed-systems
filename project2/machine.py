@@ -125,7 +125,7 @@ def exit():
     connection.close()
 
 
-def process_outgoing_msgs(connection):
+def process_user_input(connection):
     '''
     Old msg format: "<command>,<port>,<local_time>
     New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
@@ -200,7 +200,7 @@ t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
 threads.append(t1)
 t1.start()
 
-t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
+t2 = Thread(target=process_user_input, args=(tcpClient, ))
 threads.append(t2)
 t2.start()
 
