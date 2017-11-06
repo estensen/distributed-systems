@@ -3,7 +3,7 @@ import sys
 from threading import Thread
 from multiprocessing import Lock
 from random import choice, randint
-import time
+from time import sleep
 
 local_account_balance = 1000
 host = "localhost"
@@ -12,9 +12,11 @@ process_id = port
 
 MARKER = "marker"
 BUFFER_SIZE = 1024
-NUM_MACHINES = 4
+NUM_MACHINES = 3
 threads = []
 mutex = Lock()
+other_clients = [12345, 12346, 12347]
+other_clients.remove(port)
 
 final_snapshot = {}
 ongoing_snapshots = {}
@@ -48,14 +50,16 @@ def save_local_state():
 
 def record_incoming_msgs(initiator_id):
     '''
+    Make data struct for new snapshot with initiator_id
+
     When channel has received marker stop recording
     When all channels has stopped recording send local state and state to the
     machine that initialized the snapshot
-    1. Make dict for all incoming channels and array for those who hasn't
-    recieved a marker yet.
+    1. Make dict for all incoming channels and list for those who hasn't
+    received a marker yet.
     2. When processing msg from incoming_queue put in dict if no marker has been
-    recieved on that channel
-    3. When the array is empty the the local snapshot is complete
+    received on that channel
+    3. When the list is empty the the local snapshot is complete
     '''
     # list comprehension to add list with all ids as keys except itself and initiator_id
     ongoing_snapshots[initiator_id] = []
@@ -70,17 +74,18 @@ def receive_msg(connection):
     return message_str
 
 
-def user_input_to_message(user_input):
+def user_input_to_message(user_input, initiator_id):
     # EOM (end of message) splits messages so they can be parsed correctly
-    message_str = user_input + ",{},{}EOM".format(local_time, port)
+    # New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
+    message_str = user_input + ",{},{}EOM".format(port, initiator_id)
     message_binary = bytes(message_str, encoding="ascii")
     return message_binary
 
 
-def send_markers():
+def send_markers(connection, initiator_id):
     '''Send markers on all outgoing channels'''
     mutex.acquire()
-    msg = user_input_to_message(MARKER)
+    msg = user_input_to_message(MARKER, initiator_id)
     try:
         connection.send(msg)
         print("MARKERS sent on all outgoing channels")
@@ -88,14 +93,17 @@ def send_markers():
         mutex.release()
 
 
-def init_snapshot():
+def init_snapshot(connection):
     '''All incoming channels are empty'''
     print("Initating snapshot")
+    initiator_id = port
     save_local_state()
-    send_markers()
+    final_snapshot = {}
+    send_markers(connection, initiator_id)
 
 
-def start_snapshot():
+
+def start_snapshot(connection, initiator_id):
     '''
     1. Save local snapshot
     2. Send MARKERS on all outgoing channels
@@ -103,8 +111,8 @@ def start_snapshot():
     (have own thread for always listening)
     '''
     save_local_state()
-    send_markers(connection)
-    record_incoming_msgs()
+    send_markers(connection, initiator_id)
+    record_incoming_msgs(initiator_id)
 
 
 def print_final_snapshot():
@@ -123,7 +131,7 @@ def exit():
     connection.close()
 
 
-def process_outgoing_msgs(connection):
+def process_user_input(connection):
     '''
     Old msg format: "<command>,<port>,<local_time>
     New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
@@ -140,29 +148,29 @@ def process_outgoing_msgs(connection):
             print("Unrecognized command, please try snapshot or exit")
 
 
-def process_msg(msg):
-    msg_arr = msg.split(",")
-    command = msg_arr[0]
-    src_id = msg_arr[1]
+def process_msg(connection, msg):
+    msg_list = msg.split(",")
+    command = msg_list[0]
+    src_id = msg_list[1]
 
     if command == "exit":
         print("Exiting...")
         connection.close()
 
     elif command == "marker":
-        initiator_id = msg_arr[3]
-        if ongoing_snapshots[initiator_id]:
-            if ongoing_snapshots[initiator_id][src_id]:
+        initiator_id = int(msg_list[2])
+        if initiator_id in ongoing_snapshots:
+            if src_id in initiator_id in ongoing_snapshots:
                 record_msg_to_channel_state(initiator_id, src_id, msg)
             else:
                 # Done, send local snapshot and channels to initiator
                 pass
         else:
             # First marker to this machine
-            start_snapshot(initiator_id)
+            start_snapshot(connection, initiator_id)
 
-    elif command == "local_snapshot":
-        snapshot = msg_arr[3:]
+    elif command == "snapshot":
+        snapshot = msg_list[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
@@ -174,14 +182,14 @@ def process_msg(msg):
 
 def process_incoming_msgs(connection):
     # TODO: Handle transfers and snapshot
-    # TODO: Handle recieve snapshots from other nodes when done
+    # TODO: Handle receive snapshots from other nodes when done
     '''
     Snapshot
     When receiving first MARKER on channel c
     Save local state
     '''
     while True:
-        msg = recieve_msg(connection)
+        msg = receive_msg(connection)
 
         if not msg:
             connection.close()
@@ -191,17 +199,20 @@ def process_incoming_msgs(connection):
         msg_list = msg.split("EOM")  # Because msgs can arrive in chunks
 
         for i in range(len(msg_list)-1):
-            process_msg(msg_list[i])
+            process_msg(connection, msg_list[i])
 
 
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
 threads.append(t1)
+t1.start()
 
-t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
+t2 = Thread(target=process_user_input, args=(tcpClient, ))
 threads.append(t2)
+t2.start()
 
 t3 = Thread(target=auto_transfer_money)
 threads.append(t3)
+t3.start()
 
 
 for t in threads:

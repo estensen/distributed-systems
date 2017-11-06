@@ -3,12 +3,15 @@ from threading import Thread, Lock
 import sys
 import time
 
-NUM_MACHINES = 4
+NUM_MACHINES = 3
 BUFFER_SIZE = 1024
 
+mutexes = []
 connections = []
 for i in range(NUM_MACHINES):
+    mutexes.append(Lock())
     connections.append(0)
+
 threads = []
 listen_threads = []
 if len(sys.argv) > 1:
@@ -55,7 +58,8 @@ def send_msg_to_all_clients(connection, machine_index, msg):
     command = msg[0]
     src_port = msg[1]
 
-    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+    msg_str = ",".join(msg)
+    msg_binary = bytes((msg_str + "EOM"), encoding="ascii")
 
     for client in connections:
         if client != connection:  # Don't send message to yourself
@@ -69,13 +73,12 @@ def send_msg_to_all_clients(connection, machine_index, msg):
 
 def parse_msg(connection, machine_index, msg):
     command = msg[0]
-    message_binary = bytes((msg + "EOM"), encoding="ascii")
 
     if isinstance(command, int):
         send_msg_to_client(connection, machine_index, msg)
     elif command == "marker":
-        send_msg_to_all_clients(machine_index, msg)
-    elif command == "local_snapshot":
+        send_msg_to_all_clients(connection, machine_index, msg)
+    elif command == "snapshot":
         send_msg_to_client(machine_index, msg)
     else:
         command = msg[0]
@@ -96,10 +99,10 @@ def listen_for_messages(connection, machine_index):
                 connection.close()
             break
 
-        msgs_string = data.decode("utf-8")
-        msgs_list = msgs_string.split("EOM")
+        msgs_str = data.decode("utf-8")
+        msgs_list = msgs_str.split("EOM")
 
-        for msg_string in msg_list:
+        for msg_str in msgs_list:
             msg = msg_str.split(",")
             parse_msg(connection, machine_index, msg)
 
