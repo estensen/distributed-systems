@@ -72,7 +72,6 @@ def send_msg_to_all_clients(connection, machine_index, msg):
 
 def parse_msg(connection, machine_index, msg):
     command = msg[0]
-    message_binary = bytes((msg + "EOM"), encoding="ascii")
 
     if isinstance(command, int):
         send_msg_to_client(connection, machine_index, msg)
