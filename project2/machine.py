@@ -19,6 +19,7 @@ other_clients = [12345, 12346, 12347]
 other_clients.remove(port)
 
 final_snapshot = {}
+local_snapshot = {}
 ongoing_snapshots = {}
 channel_states = {}
 
@@ -71,10 +72,13 @@ def record_incoming_msgs(initiator_id):
     ongoing_snapshots[initiator_id] = clients
 
 
+def record_msg_to_channel_state(initiator_id, src_id, msg):
+    channel_states[initiator_id][src_id] = msg
+
+
 def receive_msg(connection):
     message_binary = connection.recv(BUFFER_SIZE)
     message_str = message_binary.decode("utf-8")
-    print(message_str)
     return message_str
 
 
@@ -106,7 +110,6 @@ def init_snapshot(connection):
     send_markers(connection, initiator_id)
 
 
-
 def start_snapshot(connection, initiator_id):
     '''
     1. Save local snapshot
@@ -117,6 +120,16 @@ def start_snapshot(connection, initiator_id):
     save_local_state()
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
+
+
+def send_snapshot(connection, initiator_id):
+    mutex.acquire()
+    msg = "local_snapshot,{},{},{}".format(port, initiator_id, local_snapshot)
+    try:
+        connection.send(msg)
+        print("Local snapshot sent to", initiator_id)
+    finally:
+        mutex.release()
 
 
 def print_final_snapshot():
@@ -141,7 +154,7 @@ def process_user_input(connection):
     New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
     '''
     while True:
-        user_input = input("Available commands: snapshot and exit\n")
+        user_input = input("Available commands: snapshot and exit\n$ ")
 
         if user_input == "snapshot":
             init_snapshot(connection)
@@ -153,9 +166,12 @@ def process_user_input(connection):
 
 
 def process_msg(connection, msg):
+    # TODO: Handle transfers and snapshot
+    # TODO: Handle receive snapshots from other nodes when done
+    print("incoming msg", msg)
     msg_list = msg.split(",")
     command = msg_list[0]
-    src_id = msg_list[1]
+    src_id = int(msg_list[1])
 
     if command == "exit":
         print("Exiting...")
@@ -163,9 +179,23 @@ def process_msg(connection, msg):
 
     elif command == "marker":
         initiator_id = int(msg_list[2])
+        if initiator_id == port:
+            # You started the snapshot
+            record_msg_to_channel_state(initiator_id, src_id, msg)
+
         if initiator_id in ongoing_snapshots:
-            if src_id in initiator_id in ongoing_snapshots:
+            # Already received first marker
+            # Channel state is complete => final_snapshot
+            final_snapshot[initiator_id][src_id] = channel_states[initiator_id][src_id]
+            del channel_states[initiator_id][src_id]
+            if len(channel_states[initiator_id]) == 0:
+                send_snapshot(connection, initiator_id)
+
+            '''
+            if src_id in ongoing_snapshots[initiator_id]:
+                # Haven't received
                 record_msg_to_channel_state(initiator_id, src_id, msg)
+            '''
             else:
                 # Done, send local snapshot and channels to initiator
                 pass
@@ -186,8 +216,6 @@ def process_msg(connection, msg):
 
 
 def process_incoming_msgs(connection):
-    # TODO: Handle transfers and snapshot
-    # TODO: Handle receive snapshots from other nodes when done
     '''
     Snapshot
     When receiving first MARKER on channel c
