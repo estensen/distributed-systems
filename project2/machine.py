@@ -163,7 +163,7 @@ def process_msg(msg):
             # First marker to this machine
             start_snapshot(initiator_id)
 
-    elif command == "local_snapshot":
+    elif command == "snapshot":
         snapshot = msg_arr[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))
