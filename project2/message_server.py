@@ -3,7 +3,7 @@ from threading import Thread, Lock
 import sys
 import time
 
-NUM_MACHINES = 2
+NUM_MACHINES = 3
 BUFFER_SIZE = 1024
 
 mutexes = []

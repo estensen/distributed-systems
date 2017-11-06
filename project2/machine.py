@@ -12,10 +12,10 @@ process_id = port
 
 MARKER = "marker"
 BUFFER_SIZE = 1024
-NUM_MACHINES = 2
+NUM_MACHINES = 3
 threads = []
 mutex = Lock()
-other_clients = [12345, 12346]
+other_clients = [12345, 12346, 12347]
 other_clients.remove(port)
 
 final_snapshot = {}
