@@ -61,10 +61,14 @@ def record_incoming_msgs(initiator_id):
     received on that channel
     3. When the list is empty the the local snapshot is complete
     '''
-    # list comprehension to add list with all ids as keys except itself and initiator_id
-    ongoing_snapshots[initiator_id] = []
-    # list comprehension to add dict for all incoming channels
-    channel_states[initiator_id] = {}
+    # Save incoming msgs on all channels
+    clients = [client for client in other_clients]
+    clients.remove(initiator_id)  # Already received marker from the initiator
+
+    client_queues = {client: [] for client in clients}
+    channel_states[initiator_id] = client_queues
+
+    ongoing_snapshots[initiator_id] = clients
 
 
 def receive_msg(connection):
@@ -175,6 +179,7 @@ def process_msg(connection, msg):
         print("Snapshot reveived from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
             print_final_snapshot()
+            # Delete datastructure for snapshot
 
     else:
         print("Unknown command!")
