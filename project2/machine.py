@@ -156,7 +156,7 @@ def process_msg(msg):
         connection.close()
 
     elif command == "marker":
-        initiator_id = msg_list[2]
+        initiator_id = int(msg_list[2])
         if ongoing_snapshots[initiator_id]:
             if ongoing_snapshots[initiator_id][src_id]:
                 record_msg_to_channel_state(initiator_id, src_id, msg)
