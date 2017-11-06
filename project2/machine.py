@@ -16,6 +16,7 @@ NUM_MACHINES = 4
 threads = []
 mutex = Lock()
 
+final_snapshot = {}
 ongoing_snapshots = {}
 channel_states = {}
 
@@ -106,6 +107,13 @@ def start_snapshot():
     record_incoming_msgs()
 
 
+def print_final_snapshot():
+    print("Snapshot complete...")
+    for client, state in final_snapshot:
+        print(client)
+        print(state)
+
+
 def exit():
     mutex.acquire()
     try:
@@ -153,6 +161,14 @@ def process_msg(msg):
         else:
             # First marker to this machine
             start_snapshot(initiator_id)
+
+    elif command == "snapshot":
+        src_id = msg_arr[1]
+        snapshot = msg_arr[3:]
+        final_snapshot[src_id] = snapshot
+        print("Snapshot reveived from {}".format(src_id))
+        if len(final_snapshot) == len(other_clients):
+            print_final_snapshot()
 
 
 def process_incoming_msgs(connection):
