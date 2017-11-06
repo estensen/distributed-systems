@@ -53,11 +53,11 @@ def record_incoming_msgs(initiator_id):
     When channel has received marker stop recording
     When all channels has stopped recording send local state and state to the
     machine that initialized the snapshot
-    1. Make dict for all incoming channels and array for those who hasn't
+    1. Make dict for all incoming channels and list for those who hasn't
     received a marker yet.
     2. When processing msg from incoming_queue put in dict if no marker has been
     received on that channel
-    3. When the array is empty the the local snapshot is complete
+    3. When the list is empty the the local snapshot is complete
     '''
     # list comprehension to add list with all ids as keys except itself and initiator_id
     ongoing_snapshots[initiator_id] = []
@@ -147,16 +147,16 @@ def process_user_input(connection):
 
 
 def process_msg(msg):
-    msg_arr = msg.split(",")
-    command = msg_arr[0]
-    src_id = msg_arr[1]
+    msg_list = msg.split(",")
+    command = msg_list[0]
+    src_id = msg_list[1]
 
     if command == "exit":
         print("Exiting...")
         connection.close()
 
     elif command == "marker":
-        initiator_id = msg_arr[3]
+        initiator_id = msg_list[3]
         if ongoing_snapshots[initiator_id]:
             if ongoing_snapshots[initiator_id][src_id]:
                 record_msg_to_channel_state(initiator_id, src_id, msg)
@@ -168,7 +168,7 @@ def process_msg(msg):
             start_snapshot(initiator_id)
 
     elif command == "snapshot":
-        snapshot = msg_arr[3:]
+        snapshot = msg_list[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
