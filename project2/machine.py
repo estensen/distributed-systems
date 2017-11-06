@@ -191,14 +191,6 @@ def process_msg(connection, msg):
             if len(channel_states[initiator_id]) == 0:
                 send_snapshot(connection, initiator_id)
 
-            '''
-            if src_id in ongoing_snapshots[initiator_id]:
-                # Haven't received
-                record_msg_to_channel_state(initiator_id, src_id, msg)
-            '''
-            else:
-                # Done, send local snapshot and channels to initiator
-                pass
         else:
             # First marker to this machine
             start_snapshot(connection, initiator_id)
