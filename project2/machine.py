@@ -79,7 +79,7 @@ def user_input_to_message(user_input):
     return message_binary
 
 
-def send_markers():
+def send_markers(connection):
     '''Send markers on all outgoing channels'''
     mutex.acquire()
     msg = user_input_to_message(MARKER)
@@ -90,11 +90,13 @@ def send_markers():
         mutex.release()
 
 
-def init_snapshot():
+def init_snapshot(connection):
     '''All incoming channels are empty'''
     print("Initating snapshot")
     save_local_state()
-    send_markers()
+    final_snapshot = {}
+    send_markers(connection)
+
 
 
 def start_snapshot():
