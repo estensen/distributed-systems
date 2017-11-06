@@ -76,7 +76,7 @@ def parse_msg(connection, machine_index, msg):
     if isinstance(command, int):
         send_msg_to_client(connection, machine_index, msg)
     elif command == "marker":
-        send_msg_to_all_clients(machine_index, msg)
+        send_msg_to_all_clients(connection, machine_index, msg)
     elif command == "snapshot":
         send_msg_to_client(machine_index, msg)
     else:
