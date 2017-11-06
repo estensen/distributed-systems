@@ -16,6 +16,7 @@ NUM_MACHINES = 4
 threads = []
 mutex = Lock()
 
+final_snapshot = {}
 ongoing_snapshots = {}
 channel_states = {}
 
@@ -106,6 +107,13 @@ def start_snapshot():
     record_incoming_msgs()
 
 
+def print_final_snapshot():
+    print("Snapshot complete...")
+    for client, state in final_snapshot:
+        print(client)
+        print(state)
+
+
 def exit():
     mutex.acquire()
     try:
@@ -134,15 +142,14 @@ def process_outgoing_msgs(connection):
 
 def process_msg(msg):
     msg_arr = msg.split(",")
-
     command = msg_arr[0]
+    src_id = msg_arr[1]
 
     if command == "exit":
         print("Exiting...")
         connection.close()
 
     elif command == "marker":
-        src_id = msg_arr[2]
         initiator_id = msg_arr[3]
         if ongoing_snapshots[initiator_id]:
             if ongoing_snapshots[initiator_id][src_id]:
@@ -153,6 +160,16 @@ def process_msg(msg):
         else:
             # First marker to this machine
             start_snapshot(initiator_id)
+
+    elif command == "snapshot":
+        snapshot = msg_arr[3:]
+        final_snapshot[src_id] = snapshot
+        print("Snapshot reveived from {}".format(src_id))
+        if len(final_snapshot) == len(other_clients):
+            print_final_snapshot()
+
+    else:
+        print("Unknown command!")
 
 
 def process_incoming_msgs(connection):
