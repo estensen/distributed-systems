@@ -50,6 +50,8 @@ def save_local_state():
 
 def record_incoming_msgs(initiator_id):
     '''
+    Make data struct for new snapshot with initiator_id
+
     When channel has received marker stop recording
     When all channels has stopped recording send local state and state to the
     machine that initialized the snapshot
@@ -101,7 +103,7 @@ def init_snapshot(connection):
 
 
 
-def start_snapshot():
+def start_snapshot(connection, initiator_id):
     '''
     1. Save local snapshot
     2. Send MARKERS on all outgoing channels
@@ -109,8 +111,8 @@ def start_snapshot():
     (have own thread for always listening)
     '''
     save_local_state()
-    send_markers(connection)
-    record_incoming_msgs()
+    send_markers(connection, initiator_id)
+    record_incoming_msgs(initiator_id)
 
 
 def print_final_snapshot():
@@ -146,7 +148,7 @@ def process_user_input(connection):
             print("Unrecognized command, please try snapshot or exit")
 
 
-def process_msg(msg):
+def process_msg(connection, msg):
     msg_list = msg.split(",")
     command = msg_list[0]
     src_id = msg_list[1]
@@ -165,7 +167,7 @@ def process_msg(msg):
                 pass
         else:
             # First marker to this machine
-            start_snapshot(initiator_id)
+            start_snapshot(connection, initiator_id)
 
     elif command == "snapshot":
         snapshot = msg_list[3:]
@@ -197,7 +199,7 @@ def process_incoming_msgs(connection):
         msg_list = msg.split("EOM")  # Because msgs can arrive in chunks
 
         for i in range(len(msg_list)-1):
-            process_msg(msg_list[i])
+            process_msg(connection, msg_list[i])
 
 
 t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
