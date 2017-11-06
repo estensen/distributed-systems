@@ -58,7 +58,8 @@ def send_msg_to_all_clients(connection, machine_index, msg):
     command = msg[0]
     src_port = msg[1]
 
-    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+    msg_str = ",".join(msg)
+    msg_binary = bytes((msg_str + "EOM"), encoding="ascii")
 
     for client in connections:
         if client != connection:  # Don't send message to yourself
