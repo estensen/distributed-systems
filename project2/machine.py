@@ -15,6 +15,8 @@ BUFFER_SIZE = 1024
 NUM_MACHINES = 4
 threads = []
 mutex = Lock()
+other_clients = [12345, 12346]
+other_clients.remove(port)
 
 final_snapshot = {}
 ongoing_snapshots = {}
