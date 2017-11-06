@@ -2,7 +2,7 @@ import socket
 import sys
 from threading import Thread
 from multiprocessing import Lock
-from random import randint
+from random import choice, randint
 import time
 
 local_account_balance = 1000
@@ -29,11 +29,15 @@ def transfer_money(amount, to_client):
 
 def auto_transfer_money():
     '''
-    Every 10 sec 0.2 probability of sending a random amountto another client
+    Every 10 sec 0.2 probability of sending a random amount to another client
     Don't send more money than you have
     Add delay in message_server
     '''
-    pass
+    sleep(randint(10, 14))
+    random_amount = randint(1, 20)
+    random_client = choice(other_clients)
+    if local_account_balance > random_amount:
+        transfer_money(random_amount, random_client)
 
 
 def save_local_state():
@@ -109,7 +113,6 @@ def exit():
     finally:
         mutex.release()
     connection.close()
-    break
 
 
 def process_outgoing_msgs(connection):
@@ -120,7 +123,7 @@ def process_outgoing_msgs(connection):
     while True:
         user_input = input("Available commands: snapshot and exit\n")
 
-        if user_input == "snapshot:
+        if user_input == "snapshot":
             init_snapshot(connection)
         # send_money
         elif user_input == "exit":
@@ -137,7 +140,6 @@ def process_msg(msg):
     if command == "exit":
         print("Exiting...")
         connection.close()
-        break
 
     elif command == "marker":
         src_id = msg_arr[2]
@@ -147,6 +149,7 @@ def process_msg(msg):
                 record_msg_to_channel_state(initiator_id, src_id, msg)
             else:
                 # Done, send local snapshot and channels to initiator
+                pass
         else:
             # First marker to this machine
             start_snapshot(initiator_id)
@@ -179,6 +182,9 @@ threads.append(t1)
 
 t2 = Thread(target=process_outgoing_msgs, args=(tcpClient, ))
 threads.append(t2)
+
+t3 = Thread(target=auto_transfer_money)
+threads.append(t3)
 
 
 for t in threads:
