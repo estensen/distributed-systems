@@ -53,7 +53,7 @@ def auto_transfer_money(connection):
     Add delay in message_server
     '''
     while True:
-        sleep(randint(5, 10))
+        sleep(randint(10, 15))
         random_amount = randint(1, 20)
         random_client = choice(other_clients)
         transfer_money(connection, random_amount, random_client)
@@ -158,8 +158,10 @@ def send_snapshot(connection, initiator_id):
 
 
 def print_final_snapshot():
+    print("####################")
     print("Snapshot complete...")
     print(final_snapshot)
+    print("####################")
 
 
 def exit():
@@ -205,11 +207,16 @@ def process_msg(connection, msg):
         print("Receiving ${} from {}".format(command, src_id))
         local_account_balance += command
 
+        if len(ongoing_snapshots) > 0:
+            for initiator_id in ongoing_snapshots:
+                record_msg_to_channel_state(initiator_id, src_id, msg)
+
     elif command == "exit":
         print("Exiting...")
         connection.close()
 
     elif command == "marker":
+        print("Receiving marker from", src_id)
         initiator_id = int(msg_list[2])
         if initiator_id == port:
             # You started the snapshot
@@ -230,7 +237,7 @@ def process_msg(connection, msg):
     elif command == "local_snapshot":
         snapshot = msg_list[3]
         final_snapshot[src_id] = snapshot
-        print("Snapshot reveived from {}".format(src_id))
+        print("Snapshot received from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
             print_final_snapshot()
             # Delete datastructure for snapshot
