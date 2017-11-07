@@ -129,9 +129,10 @@ def start_snapshot(connection, initiator_id):
 
 def send_snapshot(connection, initiator_id):
     mutex.acquire()
-    msg = "local_snapshot,{},{},{}".format(port, initiator_id, local_snapshot)
+    msg = "local_snapshot,{},{},{}EOM".format(port, initiator_id, local_snapshot)
+    binary_msg = bytes(msg, encoding="ascii")
     try:
-        connection.send(msg)
+        connection.send(binary_msg)
         print("Local snapshot sent to", initiator_id)
     finally:
         mutex.release()
