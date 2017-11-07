@@ -144,9 +144,7 @@ def send_snapshot(connection, initiator_id):
 
 def print_final_snapshot():
     print("Snapshot complete...")
-    for client, state in final_snapshot:
-        print(client)
-        print(state)
+    print(final_snapshot)
 
 
 def exit():
@@ -198,7 +196,7 @@ def process_msg(connection, msg):
             # Channel state is complete => local_snapshot
             local_snapshot[initiator_id][src_id] = channel_states[initiator_id][src_id]
             del channel_states[initiator_id][src_id]
-            if len(channel_states[initiator_id]) == 0:
+            if len(channel_states[initiator_id]) == 0 and initiator_id != port:
                 send_snapshot(connection, initiator_id)
 
         else:
@@ -206,7 +204,7 @@ def process_msg(connection, msg):
             start_snapshot(connection, initiator_id)
 
     elif command == "local_snapshot":
-        snapshot = msg_list[3:]
+        snapshot = msg_list[3]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
