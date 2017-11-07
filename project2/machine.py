@@ -71,6 +71,10 @@ def record_incoming_msgs(initiator_id):
 
     ongoing_snapshots[initiator_id] = clients
 
+    print("clients", clients)
+    print("client_queue", client_queues)
+    print("channel_states", channel_states)
+
 
 def record_msg_to_channel_state(initiator_id, src_id, msg):
     channel_states[initiator_id][src_id] = msg
@@ -118,6 +122,7 @@ def start_snapshot(connection, initiator_id):
     (have own thread for always listening)
     '''
     save_local_state()
+    local_snapshot[initiator_id] = {}
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
 
@@ -185,8 +190,8 @@ def process_msg(connection, msg):
 
         if initiator_id in ongoing_snapshots:
             # Already received first marker
-            # Channel state is complete => final_snapshot
-            final_snapshot[initiator_id][src_id] = channel_states[initiator_id][src_id]
+            # Channel state is complete => local_snapshot
+            local_snapshot[initiator_id][src_id] = channel_states[initiator_id][src_id]
             del channel_states[initiator_id][src_id]
             if len(channel_states[initiator_id]) == 0:
                 send_snapshot(connection, initiator_id)

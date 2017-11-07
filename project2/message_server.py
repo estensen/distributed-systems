@@ -76,11 +76,14 @@ def parse_msg(connection, machine_index, msg):
     command = msg[0]
 
     if isinstance(command, int):
+        print("msg", msg)
         send_msg_to_client(connection, machine_index, msg)
     elif command == "marker":
+        print("msg", msg)
         sleep(randint(3, 5))
         send_msg_to_all_clients(connection, machine_index, msg)
     elif command == "local_snapshot":
+        print("msg", msg)
         send_msg_to_client(machine_index, msg)
 
 
@@ -103,7 +106,6 @@ def listen_for_messages(connection, machine_index):
 
         for msg_str in msgs_list:
             msg = msg_str.split(",")
-            print("msg", msg)
             parse_msg(connection, machine_index, msg)
 
 
