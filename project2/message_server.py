@@ -1,7 +1,8 @@
 import socket
 from threading import Thread, Lock
 import sys
-import time
+from random import randint
+from time import sleep
 
 NUM_MACHINES = 3
 BUFFER_SIZE = 1024
@@ -77,6 +78,7 @@ def parse_msg(connection, machine_index, msg):
     if isinstance(command, int):
         send_msg_to_client(connection, machine_index, msg)
     elif command == "marker":
+        sleep(randint(3, 5))
         send_msg_to_all_clients(connection, machine_index, msg)
     elif command == "local_snapshot":
         send_msg_to_client(machine_index, msg)
