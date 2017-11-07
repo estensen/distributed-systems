@@ -235,9 +235,9 @@ t2 = Thread(target=process_user_input, args=(tcpClient, ))
 threads.append(t2)
 t2.start()
 
-t3 = Thread(target=auto_transfer_money)
-threads.append(t3)
-t3.start()
+#t3 = Thread(target=auto_transfer_money)
+#threads.append(t3)
+#t3.start()
 
 
 for t in threads:
