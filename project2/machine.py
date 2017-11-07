@@ -23,15 +23,24 @@ local_snapshot = {}
 ongoing_snapshots = {}
 channel_states = {}
 
-tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcpClient.connect((host, port))
+tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp_client.connect((host, port))
 
 
-def transfer_money(amount, to_client):
-    print("Transfered {} to {}".format(amount, to_client))
+def transfer_money(connection, amount, to_client):
+    msg_str = "{},{},{}EOM".format(amount, port, to_client)
+    msg_binary = bytes(msg_str, encoding="ascii")
+
+    mutex.acquire()
+    try:
+        connection.send(msg_binary)
+        print("Transfered {} to {}".format(amount, to_client))
+        print("Current balance:", local_account_balance)
+    finally:
+        mutex.release()
 
 
-def auto_transfer_money():
+def auto_transfer_money(connection):
     '''
     Every 10 sec 0.2 probability of sending a random amount to another client
     Don't send more money than you have
@@ -41,7 +50,7 @@ def auto_transfer_money():
     random_amount = randint(1, 20)
     random_client = choice(other_clients)
     if local_account_balance > random_amount:
-        transfer_money(random_amount, random_client)
+        transfer_money(connection, random_amount, random_client)
 
 
 def save_local_state():
@@ -181,7 +190,10 @@ def process_msg(connection, msg):
     command = msg_list[0]
     src_id = int(msg_list[1])
 
-    if command == "exit":
+    if isinstance(command, int):
+        print("Receiving money")
+
+    elif command == "exit":
         print("Exiting...")
         connection.close()
 
@@ -235,17 +247,17 @@ def process_incoming_msgs(connection):
             process_msg(connection, msg_list[i])
 
 
-t1 = Thread(target=process_incoming_msgs, args=(tcpClient, ))
+t1 = Thread(target=process_incoming_msgs, args=(tcp_client, ))
 threads.append(t1)
 t1.start()
 
-t2 = Thread(target=process_user_input, args=(tcpClient, ))
+t2 = Thread(target=process_user_input, args=(tcp_client, ))
 threads.append(t2)
 t2.start()
 
-#t3 = Thread(target=auto_transfer_money)
-#threads.append(t3)
-#t3.start()
+t3 = Thread(target=auto_transfer_money, args=(tcp_client, ))
+threads.append(t3)
+t3.start()
 
 
 for t in threads:
