@@ -48,7 +48,7 @@ def send_msg_to_client(machine_index, msg):
     msg_str = ",".join(msg)
     msg_binary = bytes((msg_str + "EOM"), encoding="ascii")
 
-    mutexes.acquire[machine_index].acquire()
+    mutexes[machine_index].acquire()
     try:
         connections[port_index].send(msg_binary)
     finally:
