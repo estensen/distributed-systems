@@ -23,6 +23,7 @@ other_clients.remove(port)
 
 final_snapshot = {}
 local_snapshot = {}
+local_state = {}
 ongoing_snapshots = {}
 channel_states = {}
 
@@ -63,9 +64,11 @@ def auto_transfer_money(connection):
             transfer_money(connection, random_amount, random_client)
 
 
-def save_local_state():
+def save_local_state(initiator_id):
     '''Dict with initiators id as key?'''
     print("Local state saved")
+    print(local_snapshot)
+    local_state[initiator_id] = local_account_balance
 
 
 def record_incoming_msgs(initiator_id):
@@ -130,8 +133,8 @@ def init_snapshot(connection):
     '''All incoming channels are empty'''
     print("Initating snapshot")
     initiator_id = port
-    save_local_state()
     local_snapshot[initiator_id] = {}
+    save_local_state(initiator_id)
     final_snapshot = {}
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
@@ -144,7 +147,7 @@ def start_snapshot(connection, initiator_id):
     3. Listen for MARKERS on incomming channels
     (have own thread for always listening)
     '''
-    save_local_state()
+    save_local_state(initiator_id)
     print("local_snapshot", local_snapshot)
     local_snapshot[initiator_id] = {}
     print("local_snapshot", local_snapshot)
@@ -154,7 +157,7 @@ def start_snapshot(connection, initiator_id):
 
 def send_snapshot(connection, initiator_id):
     mutex.acquire()
-    msg = "local_snapshot,{},{},{}EOM".format(port, initiator_id, local_snapshot[initiator_id])
+    msg = "local_snapshot,{},{},{},{}EOM".format(port, initiator_id, local_state[initiator_id], local_snapshot[initiator_id])
     print("local_snapshot", msg)
     binary_msg = bytes(msg, encoding="ascii")
     try:
@@ -247,7 +250,7 @@ def process_msg(connection, msg):
             start_snapshot(connection, initiator_id)
 
     elif command == "local_snapshot":
-        snapshot = msg_list[3]
+        snapshot = msg_list[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot received from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
