@@ -2,7 +2,7 @@ import socket
 import sys
 from threading import Thread
 from multiprocessing import Lock
-from random import choice, randint
+from random import choice, randint, random
 from time import sleep
 
 local_account_balance = 1000
@@ -56,10 +56,11 @@ def auto_transfer_money(connection):
     Add delay in message_server
     '''
     while True:
-        sleep(randint(10, 15))
-        random_amount = randint(1, 20)
-        random_client = choice(other_clients)
-        transfer_money(connection, random_amount, random_client)
+        sleep(10)
+        if (random() < 0.12):
+            random_amount = randint(1, 20)
+            random_client = choice(other_clients)
+            transfer_money(connection, random_amount, random_client)
 
 
 def save_local_state():
@@ -90,9 +91,9 @@ def record_incoming_msgs(initiator_id):
 
     ongoing_snapshots[initiator_id] = clients
 
-    print("clients", clients)
-    print("client_queue", client_queues)
-    print("channel_states", channel_states)
+    #print("clients", clients)
+    #print("client_queue", client_queues)
+    #print("channel_states", channel_states)
 
 
 def record_msg_to_channel_state(initiator_id, src_id, msg):
@@ -116,6 +117,7 @@ def user_input_to_message(user_input, initiator_id):
 def send_markers(connection, initiator_id):
     '''Send markers on all outgoing channels'''
     mutex.acquire()
+    sleep(randint(3, 5))
     msg = user_input_to_message(MARKER, initiator_id)
     try:
         connection.send(msg)
@@ -143,7 +145,9 @@ def start_snapshot(connection, initiator_id):
     (have own thread for always listening)
     '''
     save_local_state()
+    print("local_snapshot", local_snapshot)
     local_snapshot[initiator_id] = {}
+    print("local_snapshot", local_snapshot)
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
 
@@ -156,6 +160,9 @@ def send_snapshot(connection, initiator_id):
     try:
         connection.send(binary_msg)
         print("Local snapshot sent to", initiator_id)
+        del local_snapshot[initiator_id]
+        del channel_states[initiator_id]
+        del ongoing_snapshots[initiator_id]
     finally:
         mutex.release()
 
@@ -163,7 +170,8 @@ def send_snapshot(connection, initiator_id):
 def print_final_snapshot():
     print("####################")
     print("Snapshot complete...")
-    print(final_snapshot)
+    print("Own incoming channels:", local_snapshot[port])
+    print("Others' incoming channels:", final_snapshot)
     print("####################")
 
 
@@ -219,12 +227,8 @@ def process_msg(connection, msg):
         connection.close()
 
     elif command == "marker":
-        sleep(randint(3, 5))
         print("Receiving marker from", src_id)
         initiator_id = int(msg_list[2])
-        if initiator_id == port:
-            # You started the snapshot
-            record_msg_to_channel_state(initiator_id, src_id, msg)
 
         if initiator_id in ongoing_snapshots:
             # Already received first marker
@@ -244,7 +248,6 @@ def process_msg(connection, msg):
         print("Snapshot received from {}".format(src_id))
         if len(final_snapshot) == len(other_clients):
             print_final_snapshot()
-            # Delete datastructure for snapshot
 
     else:
         print("Unknown command!")
