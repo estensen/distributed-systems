@@ -76,9 +76,9 @@ def send_msg_to_all_clients(connection, machine_index, msg):
 def parse_msg(connection, machine_index, msg):
     command = msg[0]
 
-    if isinstance(command, int):
+    if isinstance(int(command), int):
         print("msg", msg)
-        send_msg_to_client(connection, machine_index, msg)
+        send_msg_to_client(machine_index, msg)
     elif command == "marker":
         print("msg", msg)
         sleep(randint(3, 5))

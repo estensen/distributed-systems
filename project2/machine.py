@@ -196,7 +196,7 @@ def process_msg(connection, msg):
     command = msg_list[0]
     src_id = int(msg_list[1])
 
-    if isinstance(command, int):
+    if isinstance(int(command), int):
         print("Receiving money")
 
     elif command == "exit":
