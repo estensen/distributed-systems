@@ -64,7 +64,8 @@ def record_incoming_msgs(initiator_id):
     '''
     # Save incoming msgs on all channels
     clients = [client for client in other_clients]
-    clients.remove(initiator_id)  # Already received marker from the initiator
+    if port != initiator_id:
+        clients.remove(initiator_id)  # Already received marker from the initiator
 
     client_queues = {client: [] for client in clients}
     channel_states[initiator_id] = client_queues
@@ -112,6 +113,7 @@ def init_snapshot(connection):
     save_local_state()
     final_snapshot = {}
     send_markers(connection, initiator_id)
+    record_incoming_msgs(initiator_id)
 
 
 def start_snapshot(connection, initiator_id):
@@ -129,7 +131,8 @@ def start_snapshot(connection, initiator_id):
 
 def send_snapshot(connection, initiator_id):
     mutex.acquire()
-    msg = "local_snapshot,{},{},{}EOM".format(port, initiator_id, local_snapshot)
+    msg = "local_snapshot,{},{},{}EOM".format(port, initiator_id, local_snapshot[initiator_id])
+    print("local_snapshot", msg)
     binary_msg = bytes(msg, encoding="ascii")
     try:
         connection.send(binary_msg)
@@ -201,7 +204,7 @@ def process_msg(connection, msg):
             # First marker to this machine
             start_snapshot(connection, initiator_id)
 
-    elif command == "snapshot":
+    elif command == "local_snapshot":
         snapshot = msg_list[3:]
         final_snapshot[src_id] = snapshot
         print("Snapshot reveived from {}".format(src_id))

@@ -45,7 +45,8 @@ def send_msg_to_client(machine_index, msg):
     dst_port = msg[2]
     port_index = int(dst_port) - int(port)
     # This works because the ports are after each other
-    msg_binary = bytes((msg + "EOM"), encoding="ascii")
+    msg_str = ",".join(msg)
+    msg_binary = bytes((msg_str + "EOM"), encoding="ascii")
 
     mutexes.acquire[machine_index].acquire()
     try:
