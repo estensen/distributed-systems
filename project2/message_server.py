@@ -82,9 +82,6 @@ def parse_msg(connection, machine_index, msg):
         send_msg_to_all_clients(connection, machine_index, msg)
     elif command == "local_snapshot":
         send_msg_to_client(machine_index, msg)
-    else:
-        command = msg[0]
-        print("Command {} not recognized from msg {}".format(command, msg))
 
 
 def listen_for_messages(connection, machine_index):
