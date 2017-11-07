@@ -84,7 +84,6 @@ def parse_msg(connection, machine_index, msg):
         send_msg_to_client(machine_index, msg)
     elif command == "marker":
         print("msg", msg)
-        sleep(randint(3, 5))
         send_msg_to_all_clients(connection, machine_index, msg)
     elif command == "local_snapshot":
         print("msg", msg)

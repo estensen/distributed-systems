@@ -216,6 +216,7 @@ def process_msg(connection, msg):
         connection.close()
 
     elif command == "marker":
+        sleep(randint(3, 5))
         print("Receiving marker from", src_id)
         initiator_id = int(msg_list[2])
         if initiator_id == port:
