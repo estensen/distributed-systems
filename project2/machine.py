@@ -192,6 +192,12 @@ def process_user_input(connection):
     while True:
         user_input = input("Available commands: snapshot and exit\n$ ")
 
+        if user_input[0].isdigit():
+            user_input_list = user_input.split(" ")
+            amount = int(user_input_list[0])
+            dst_id = user_input_list[1]
+            transfer_money(connection, amount, dst_id)
+
         if user_input == "snapshot":
             init_snapshot(connection)
         # send_money
@@ -203,10 +209,8 @@ def process_user_input(connection):
 
 def process_msg(connection, msg):
     global local_account_balance
+    print("Incoming msg", msg)
 
-    # TODO: Handle transfers and snapshot
-    # TODO: Handle receive snapshots from other nodes when done
-    print("incoming msg", msg)
     msg_list = msg.split(",")
     command = msg_list[0]
     src_id = int(msg_list[1])

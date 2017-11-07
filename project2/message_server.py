@@ -108,7 +108,6 @@ def listen_for_messages(connection, machine_index):
         msgs_list = msgs_str.split("EOM")
 
         for msg_str in msgs_list:
-            sleep(randint(3, 5))
             msg = msg_str.split(",")
             parse_msg(connection, machine_index, msg)
 
