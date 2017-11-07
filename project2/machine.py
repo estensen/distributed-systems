@@ -65,25 +65,12 @@ def auto_transfer_money(connection):
 
 
 def save_local_state(initiator_id):
-    '''Dict with initiators id as key?'''
     print("Local state saved")
     print(local_snapshot)
     local_state[initiator_id] = local_account_balance
 
 
 def record_incoming_msgs(initiator_id):
-    '''
-    Make data struct for new snapshot with initiator_id
-
-    When channel has received marker stop recording
-    When all channels has stopped recording send local state and state to the
-    machine that initialized the snapshot
-    1. Make dict for all incoming channels and list for those who hasn't
-    received a marker yet.
-    2. When processing msg from incoming_queue put in dict if no marker has been
-    received on that channel
-    3. When the list is empty the the local snapshot is complete
-    '''
     # Save incoming msgs on all channels
     clients = [client for client in other_clients]
     if port != initiator_id:
@@ -93,10 +80,6 @@ def record_incoming_msgs(initiator_id):
     channel_states[initiator_id] = client_queues
 
     ongoing_snapshots[initiator_id] = clients
-
-    #print("clients", clients)
-    #print("client_queue", client_queues)
-    #print("channel_states", channel_states)
 
 
 def record_msg_to_channel_state(initiator_id, src_id, msg):
@@ -111,14 +94,13 @@ def receive_msg(connection):
 
 def user_input_to_message(user_input, initiator_id):
     # EOM (end of message) splits messages so they can be parsed correctly
-    # New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
+    # Msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
     message_str = user_input + ",{},{}EOM".format(port, initiator_id)
     message_binary = bytes(message_str, encoding="ascii")
     return message_binary
 
 
 def send_markers(connection, initiator_id):
-    '''Send markers on all outgoing channels'''
     mutex.acquire()
     sleep(randint(3, 5))
     msg = user_input_to_message(MARKER, initiator_id)
@@ -130,7 +112,6 @@ def send_markers(connection, initiator_id):
 
 
 def init_snapshot(connection):
-    '''All incoming channels are empty'''
     print("Initating snapshot")
     initiator_id = port
     local_snapshot[initiator_id] = {}
@@ -187,10 +168,7 @@ def exit():
 
 
 def process_user_input(connection):
-    '''
-    Old msg format: "<command>,<port>,<local_time>
-    New msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"
-    '''
+    '''Msg format: "<command>,<src_id>,opt=<dst_id>,opt=<initiator_id>"'''
     while True:
         user_input = input("Available commands: snapshot and exit\n$ ")
 
@@ -205,7 +183,7 @@ def process_user_input(connection):
 
         elif user_input == "snapshot":
             init_snapshot(connection)
-        # send_money
+
         elif user_input == "exit":
             exit(connection)
         else:
@@ -263,11 +241,6 @@ def process_msg(connection, msg):
 
 
 def process_incoming_msgs(connection):
-    '''
-    Snapshot
-    When receiving first MARKER on channel c
-    Save local state
-    '''
     while True:
         msg = receive_msg(connection)
 
