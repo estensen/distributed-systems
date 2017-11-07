@@ -148,9 +148,7 @@ def start_snapshot(connection, initiator_id):
     (have own thread for always listening)
     '''
     save_local_state(initiator_id)
-    print("local_snapshot", local_snapshot)
     local_snapshot[initiator_id] = {}
-    print("local_snapshot", local_snapshot)
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
 
@@ -173,6 +171,7 @@ def send_snapshot(connection, initiator_id):
 def print_final_snapshot():
     print("####################")
     print("Snapshot complete...")
+    print("Own local state:", local_state[port])
     print("Own incoming channels:", local_snapshot[port])
     print("Others' incoming channels:", final_snapshot)
     print("####################")
@@ -195,7 +194,10 @@ def process_user_input(connection):
     while True:
         user_input = input("Available commands: snapshot and exit\n$ ")
 
-        if user_input[0].isdigit():
+        if user_input == "":
+            break
+
+        elif user_input[0].isdigit():
             user_input_list = user_input.split(" ")
             amount = int(user_input_list[0])
             dst_id = user_input_list[1]
