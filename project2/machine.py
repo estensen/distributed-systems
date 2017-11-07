@@ -198,7 +198,7 @@ def process_user_input(connection):
             dst_id = user_input_list[1]
             transfer_money(connection, amount, dst_id)
 
-        if user_input == "snapshot":
+        elif user_input == "snapshot":
             init_snapshot(connection)
         # send_money
         elif user_input == "exit":
