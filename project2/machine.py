@@ -16,6 +16,9 @@ NUM_MACHINES = 3
 threads = []
 mutex = Lock()
 other_clients = [12345, 12346, 12347]
+names = ["Thor", "Odin", "Loke"]
+name = names[other_clients.index(port)]
+print("{}, ${}".format(name, local_account_balance))
 other_clients.remove(port)
 
 final_snapshot = {}
