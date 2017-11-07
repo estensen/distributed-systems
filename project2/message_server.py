@@ -76,7 +76,10 @@ def send_msg_to_all_clients(connection, machine_index, msg):
 def parse_msg(connection, machine_index, msg):
     command = msg[0]
 
-    if isinstance(int(command), int):
+    if command.isdigit():
+        command = int(command)
+
+    if isinstance(command, int):
         print("msg", msg)
         send_msg_to_client(machine_index, msg)
     elif command == "marker":

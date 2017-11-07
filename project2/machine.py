@@ -189,6 +189,8 @@ def process_user_input(connection):
 
 
 def process_msg(connection, msg):
+    global local_account_balance
+
     # TODO: Handle transfers and snapshot
     # TODO: Handle receive snapshots from other nodes when done
     print("incoming msg", msg)
@@ -196,8 +198,12 @@ def process_msg(connection, msg):
     command = msg_list[0]
     src_id = int(msg_list[1])
 
-    if isinstance(int(command), int):
-        print("Receiving money")
+    if command.isdigit():
+        command = int(command)
+
+    if isinstance(command, int):
+        print("Receiving ${} from {}".format(command, src_id))
+        local_account_balance += command
 
     elif command == "exit":
         print("Exiting...")
