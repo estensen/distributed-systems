@@ -111,6 +111,7 @@ def init_snapshot(connection):
     print("Initating snapshot")
     initiator_id = port
     save_local_state()
+    local_snapshot[initiator_id] = {}
     final_snapshot = {}
     send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
