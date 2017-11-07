@@ -28,16 +28,22 @@ tcp_client.connect((host, port))
 
 
 def transfer_money(connection, amount, to_client):
-    msg_str = "{},{},{}EOM".format(amount, port, to_client)
-    msg_binary = bytes(msg_str, encoding="ascii")
+    global local_account_balance
+    if amount < local_account_balance:
+        local_account_balance -= amount
 
-    mutex.acquire()
-    try:
-        connection.send(msg_binary)
-        print("Transfered {} to {}".format(amount, to_client))
-        print("Current balance:", local_account_balance)
-    finally:
-        mutex.release()
+        msg_str = "{},{},{}EOM".format(amount, port, to_client)
+        msg_binary = bytes(msg_str, encoding="ascii")
+
+        mutex.acquire()
+        try:
+            connection.send(msg_binary)
+            print("Transfered {} to {}".format(amount, to_client))
+            print("Current balance:", local_account_balance)
+        finally:
+            mutex.release()
+    else:
+        print("Not enough $")
 
 
 def auto_transfer_money(connection):
@@ -46,10 +52,10 @@ def auto_transfer_money(connection):
     Don't send more money than you have
     Add delay in message_server
     '''
-    sleep(randint(10, 14))
-    random_amount = randint(1, 20)
-    random_client = choice(other_clients)
-    if local_account_balance > random_amount:
+    while True:
+        sleep(randint(5, 10))
+        random_amount = randint(1, 20)
+        random_client = choice(other_clients)
         transfer_money(connection, random_amount, random_client)
 
 
