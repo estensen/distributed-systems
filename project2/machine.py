@@ -33,7 +33,12 @@ tcp_client.connect((host, port))
 
 def transfer_money(connection, amount, to_client):
     global local_account_balance
-    if amount < local_account_balance:
+
+    if amount > local_account_balance:
+        print("Not enough $")
+    elif to_client not in other_clients:
+        print("Can't send $ to a client that doesn't exist")
+    else:
         local_account_balance -= amount
 
         msg_str = "{},{},{}EOM".format(amount, port, to_client)
@@ -46,8 +51,6 @@ def transfer_money(connection, amount, to_client):
             print("Current balance:", local_account_balance)
         finally:
             mutex.release()
-    else:
-        print("Not enough $")
 
 
 def auto_transfer_money(connection):
@@ -58,7 +61,7 @@ def auto_transfer_money(connection):
     '''
     while True:
         sleep(10)
-        if (random() < 0.12):
+        if (random() < 0.52):
             random_amount = randint(1, 20)
             random_client = choice(other_clients)
             transfer_money(connection, random_amount, random_client)
