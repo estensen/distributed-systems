@@ -81,6 +81,7 @@ def parse_msg(connection, machine_index, msg):
 
     if isinstance(command, int):
         print("msg", msg)
+        sleep(3)
         send_msg_to_client(machine_index, msg)
     elif command == "marker":
         print("msg", msg)
@@ -106,6 +107,11 @@ def listen_for_messages(connection, machine_index):
 
         msgs_str = data.decode("utf-8")
         msgs_list = msgs_str.split("EOM")
+
+        print(msgs_list)
+        if msgs_list[-1] == "":
+            msgs_list = msgs_list[:-1]
+        print(msgs_list)
 
         for msg_str in msgs_list:
             msg = msg_str.split(",")
