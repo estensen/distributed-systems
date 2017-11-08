@@ -72,9 +72,10 @@ def save_local_state(initiator_id):
 
 def record_incoming_msgs(initiator_id):
     # Save incoming msgs on all channels
+    # Already received marker from the initiator
     clients = [client for client in other_clients]
     if port != initiator_id:
-        clients.remove(initiator_id)  # Already received marker from the initiator
+        clients.remove(initiator_id)
 
     client_queues = {client: [] for client in clients}
     channel_states[initiator_id] = client_queues
@@ -143,7 +144,11 @@ def send_snapshot(connection, initiator_id):
         connection.send(binary_msg)
         print("Local snapshot sent to", initiator_id)
         del local_snapshot[initiator_id]
-        del channel_states[initiator_id]
+        clients = [client for client in other_clients]
+        if port != initiator_id:
+            clients.remove(initiator_id)
+        client_queues = {client: [] for client in clients}
+        channel_states[initiator_id] = client_queues
         del ongoing_snapshots[initiator_id]
     finally:
         mutex.release()
@@ -152,9 +157,17 @@ def send_snapshot(connection, initiator_id):
 def print_final_snapshot():
     print("####################")
     print("Snapshot complete...")
-    print("Own local state:", local_state[port])
-    print("Own incoming channels:", local_snapshot[port])
-    print("Others' incoming channels:", final_snapshot)
+    print("Own local state: $", local_state[port])
+    print("Own incoming channels:")
+    for channel, val in local_snapshot[port].items():
+        print(channel, val)
+
+    for client, state in final_snapshot.items():
+        print("{} state {}".format(client, state[0]))
+        print("{} incoming channels:".format(client))
+        print(state[1])
+        #for channel, val in state[1].items():
+        #    print(channel, val)
     print("####################")
 
 
