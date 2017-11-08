@@ -36,7 +36,7 @@ def transfer_money(connection, amount, to_client):
 
     if amount > local_account_balance:
         print("Not enough $")
-    elif to_client not in other_clients:
+    elif int(to_client) not in other_clients:
         print("Can't send $ to a client that doesn't exist")
     else:
         local_account_balance -= amount
