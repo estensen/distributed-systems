@@ -61,7 +61,7 @@ def auto_transfer_money(connection):
     '''
     while True:
         sleep(10)
-        if (random() < 0.52):
+        if (random() < 0.92):
             random_amount = randint(1, 20)
             random_client = choice(other_clients)
             transfer_money(connection, random_amount, random_client)
@@ -87,9 +87,6 @@ def record_incoming_msgs(initiator_id):
 
 def record_msg_to_channel_state(initiator_id, src_id, msg):
     amount = int(msg[0])
-    print(channel_states)
-    print(channel_states[initiator_id])
-    print(channel_states[initiator_id][src_id])
     channel_states[initiator_id][src_id] += amount
 
 
@@ -222,7 +219,8 @@ def process_msg(connection, msg):
 
         if len(ongoing_snapshots) > 0:
             for initiator_id in ongoing_snapshots:
-                record_msg_to_channel_state(initiator_id, src_id, msg)
+                if initiator_id != src_id:
+                    record_msg_to_channel_state(initiator_id, src_id, msg)
 
     elif command == "exit":
         print("Exiting...")
