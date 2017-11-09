@@ -108,10 +108,8 @@ def listen_for_messages(connection, machine_index):
         msgs_str = data.decode("utf-8")
         msgs_list = msgs_str.split("EOM")
 
-        print(msgs_list)
         if msgs_list[-1] == "":
             msgs_list = msgs_list[:-1]
-        print(msgs_list)
 
         for msg_str in msgs_list:
             msg = msg_str.split(",")

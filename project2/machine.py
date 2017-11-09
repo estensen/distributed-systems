@@ -21,11 +21,11 @@ name = names[other_clients.index(port)]
 print("{}, ${}".format(name, local_account_balance))
 other_clients.remove(port)
 
-final_snapshot = {}
-local_snapshot = {}
-local_state = {}
-ongoing_snapshots = {}
-channel_states = {}
+# We are 12345
+# Both 12346 and 12347 has ongoing snapshots
+ongoing_snapshots = {}  # {12347: [12346], 12346: 12347}
+local_states = {}  # {12346: 1000, 12347: 956}
+channel_states = {}  # {12346: {12347: 11}, 12347: {12346: 72}
 
 tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcp_client.connect((host, port))
@@ -69,8 +69,7 @@ def auto_transfer_money(connection):
 
 def save_local_state(initiator_id):
     print("Local state saved")
-    print(local_snapshot)
-    local_state[initiator_id] = local_account_balance
+    local_states[initiator_id] = local_account_balance
 
 
 def record_incoming_msgs(initiator_id):
@@ -80,14 +79,18 @@ def record_incoming_msgs(initiator_id):
     if port != initiator_id:
         clients.remove(initiator_id)
 
-    client_queues = {client: [] for client in clients}
+    client_queues = {client: 0 for client in clients}
     channel_states[initiator_id] = client_queues
 
     ongoing_snapshots[initiator_id] = clients
 
 
 def record_msg_to_channel_state(initiator_id, src_id, msg):
-    channel_states[initiator_id][src_id] = msg
+    amount = int(msg[0])
+    print(channel_states)
+    print(channel_states[initiator_id])
+    print(channel_states[initiator_id][src_id])
+    channel_states[initiator_id][src_id] += amount
 
 
 def receive_msg(connection):
@@ -118,11 +121,9 @@ def send_markers(connection, initiator_id):
 def init_snapshot(connection):
     print("Initating snapshot")
     initiator_id = port
-    local_snapshot[initiator_id] = {}
     save_local_state(initiator_id)
-    final_snapshot = {}
-    send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
+    send_markers(connection, initiator_id)
 
 
 def start_snapshot(connection, initiator_id):
@@ -133,26 +134,22 @@ def start_snapshot(connection, initiator_id):
     (have own thread for always listening)
     '''
     save_local_state(initiator_id)
-    local_snapshot[initiator_id] = {}
-    send_markers(connection, initiator_id)
     record_incoming_msgs(initiator_id)
+    send_markers(connection, initiator_id)
 
 
 def send_snapshot(connection, initiator_id):
     mutex.acquire()
-    msg = "local_snapshot,{},{},{},{}EOM".format(port, initiator_id, local_state[initiator_id], local_snapshot[initiator_id])
+    msg = "local_snapshot,{},{},{},{}EOM".format(port, initiator_id, local_states[initiator_id], channel_states[initiator_id])
     print("local_snapshot", msg)
     binary_msg = bytes(msg, encoding="ascii")
     try:
         connection.send(binary_msg)
-        print("Local snapshot sent to", initiator_id)
-        del local_snapshot[initiator_id]
-        clients = [client for client in other_clients]
-        if port != initiator_id:
-            clients.remove(initiator_id)
-        client_queues = {client: [] for client in clients}
-        channel_states[initiator_id] = client_queues
+        print("#Local snapshot sent to", initiator_id)
         del ongoing_snapshots[initiator_id]
+        del local_states[initiator_id]
+        del channel_states[initiator_id]
+
     finally:
         mutex.release()
 
@@ -168,6 +165,7 @@ def print_final_snapshot():
     for client, state in final_snapshot.items():
         print("{} state {}".format(client, state[0]))
         print("{} incoming channels:".format(client))
+        print(state)
         print(state[1])
         #for channel, val in state[1].items():
         #    print(channel, val)
@@ -220,6 +218,7 @@ def process_msg(connection, msg):
     if isinstance(command, int):
         print("Receiving ${} from {}".format(command, src_id))
         local_account_balance += command
+        print("Balance is", local_account_balance)
 
         if len(ongoing_snapshots) > 0:
             for initiator_id in ongoing_snapshots:
@@ -231,14 +230,21 @@ def process_msg(connection, msg):
 
     elif command == "marker":
         print("Receiving marker from", src_id)
+        print("ongoing_snapshots", ongoing_snapshots)
+        print("channel_states", channel_states)
         initiator_id = int(msg_list[2])
 
         if initiator_id in ongoing_snapshots:
-            # Already received first marker
-            # Channel state is complete => local_snapshot
-            local_snapshot[initiator_id][src_id] = channel_states[initiator_id][src_id]
-            del channel_states[initiator_id][src_id]
-            if len(channel_states[initiator_id]) == 0 and initiator_id != port:
+            # Already received first
+            print("ongoing_snapshots", ongoing_snapshots)
+            print(ongoing_snapshots[initiator_id])
+            #print(ongoing_snapshots[initiator_id[src_id]])
+
+            if src_id in ongoing_snapshots[initiator_id]:
+                ongoing_snapshots[initiator_id].remove(src_id)
+            print("ongoing_snapshots", ongoing_snapshots)
+
+            if len(ongoing_snapshots[initiator_id]) == 0 and initiator_id != port:
                 send_snapshot(connection, initiator_id)
 
         else:
@@ -247,10 +253,10 @@ def process_msg(connection, msg):
 
     elif command == "local_snapshot":
         snapshot = msg_list[3:]
-        final_snapshot[src_id] = snapshot
-        print("Snapshot received from {}".format(src_id))
-        if len(final_snapshot) == len(other_clients):
-            print_final_snapshot()
+        print("#############################")
+        print("#Snapshot received from {}".format(src_id))
+        print(snapshot)
+        print("#############################")
 
     else:
         print("Unknown command!")
