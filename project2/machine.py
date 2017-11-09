@@ -256,10 +256,11 @@ def process_msg(connection, msg):
             start_snapshot(connection, initiator_id)
 
     elif command == "local_snapshot":
-        snapshot = msg_list[3:]
+        state = msg_list[3]
+        channels = msg_list[4]
         print("#############################")
-        print("#Snapshot received from {}".format(src_id))
-        print(snapshot)
+        print("{}'s state: {}".format(src_id, state))
+        print(channels)
         print("#############################")
 
     else:
