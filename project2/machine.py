@@ -244,8 +244,14 @@ def process_msg(connection, msg):
                 ongoing_snapshots[initiator_id].remove(src_id)
             print("ongoing_snapshots", ongoing_snapshots)
 
-            if len(ongoing_snapshots[initiator_id]) == 0 and initiator_id != port:
-                send_snapshot(connection, initiator_id)
+            if len(ongoing_snapshots[initiator_id]) == 0:
+                if initiator_id == port:
+                    print("#############################")
+                    print("Local state:", local_states[port])
+                    print(channel_states[port])
+                    print("#############################")
+                else:
+                    send_snapshot(connection, initiator_id)
 
         else:
             # First marker to this machine
