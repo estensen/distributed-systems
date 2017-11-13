@@ -23,12 +23,12 @@ def process_user_input(user_input):
     words = user_input.split(" ")
     command = words[0]
     if len(words) > 1:
-        parameter = words[1]
+        arg = words[1]
 
     if command == "show":
         send_msg("show")
-    elif command == "buy" and parameter.isdigit():
-        send_msg("{},{}".format(command, parameter))
+    elif command == "buy" and arg.isdigit():
+        send_msg("{},{}".format(command, arg))
     else:
         print("Couldn't recognize the command", user_input)
 
