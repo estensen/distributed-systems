@@ -29,6 +29,12 @@ def listen_datacenters(sock):
         print(msg)
 
 
+def send_data(sock):
+    data = "Hello"
+    msg = bytes(data, encoding="ascii")
+    sock.sendto(msg, cluster['B'])
+
+
 def setup(cluster):
     # Create socket to receive msgs from other datacenters
     print("Cluster", cluster)
@@ -45,15 +51,21 @@ def setup(cluster):
 def run():
     server_sock = setup(cluster)
 
-    # Server thread
-    server_thread = Thread(target=listen_datacenters, args=(server_sock, ))
-    threads.append(server_thread)
-    server_thread.start()
+    # Server listen thread
+    server_listen_thread = Thread(target=listen_datacenters, args=(server_sock, ))
+    threads.append(server_listen_thread)
+    server_listen_thread.start()
 
-    # Client thread
+    # Server send thread
+    server_send_thread = Thread(target=send_data, args=(server_sock, ))
+    threads.append(server_send_thread)
+    server_send_thread.start()
+
+    # Client thread send
     client_thread = Thread(target=listen_client)
     threads.append(client_thread)
     client_thread.start()
+
 
 
 if __name__ == "__main__":
