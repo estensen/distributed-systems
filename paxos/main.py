@@ -35,10 +35,10 @@ def setup(Server):
 
 def run():
     server = setup(Server)
-    
+
     while True:
         data = input("Send msg: ")
-        server.send_data(data)
+        server.send_data_to_all(data)
 
     # Client thread send
     #client_thread = Thread(target=listen_client)

@@ -12,12 +12,16 @@ class Server:
         self.setup()
         self.run()
 
-    def send_data(self, data):
+    def send_data(self, data, addr):
+        print(data)
         msg = bytes(data, encoding="ascii")
+        if addr != self.server_addr:
+            self.sock.sendto(msg, addr)
+            print("Message sent to", addr)
+
+    def send_data_to_all(self, data):
         for identifier, addr in cluster.items():
-            if addr != self.server_addr:
-                self.sock.sendto(msg, addr)
-                print("Message sent to", addr)
+            self.send_data(data, addr)
 
     def listen(self):
         while True:
