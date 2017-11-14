@@ -29,6 +29,10 @@ class Server:
             msg = data.decode("utf-8")
             self.log.append(msg)
             print(msg)
+            if msg == "yo":
+                return_msg = "Return"
+                self.send_data(return_msg, addr)
+
 
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
