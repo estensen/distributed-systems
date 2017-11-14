@@ -23,49 +23,27 @@ def listen_client():
         print(msg)
 
 
-def listen_datacenters(sock):
-    while True:
-        data, addr = sock.recvfrom(BUFFER_SIZE)
-        msg = data.decode("utf-8")
-        print(msg)
-
-
-def send_data(sock):
-    data = "Hello"
-    msg = bytes(data, encoding="ascii")
-    sock.sendto(msg, cluster['B'])
-
-
-def setup(cluster):
+def setup(Server):
     # Create socket to receive msgs from other datacenters
     print("Cluster", cluster)
-    address_choice = input("Pick an address (A, B or C): ")
-    SERVER_ADDR = cluster[address_choice]
-    print(SERVER_ADDR)
-    server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_sock.bind(SERVER_ADDR)
-    print("Server socket created")
+    identifier = input("Pick an address (A, B or C): ")
+    server_addr = cluster[identifier]
+    server = Server(server_addr)
 
-    return server_sock
+    return server
 
 
 def run():
-    server_sock = setup(cluster)
-
-    # Server listen thread
-    server_listen_thread = Thread(target=listen_datacenters, args=(server_sock, ))
-    threads.append(server_listen_thread)
-    server_listen_thread.start()
-
-    # Server send thread
-    server_send_thread = Thread(target=send_data, args=(server_sock, ))
-    threads.append(server_send_thread)
-    server_send_thread.start()
+    server = setup(Server)
+    
+    while True:
+        data = input("Send msg: ")
+        server.send_data(data)
 
     # Client thread send
-    client_thread = Thread(target=listen_client)
-    threads.append(client_thread)
-    client_thread.start()
+    #client_thread = Thread(target=listen_client)
+    #threads.append(client_thread)
+    #client_thread.start()
 
 
 
