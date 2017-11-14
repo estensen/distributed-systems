@@ -8,6 +8,7 @@ threads = []
 class Server:
     def __init__(self, server_addr):
         self.server_addr = server_addr
+        self.log = []
         self.setup()
         self.run()
 
@@ -22,6 +23,7 @@ class Server:
         while True:
             data, addr = self.sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
+            self.log.append(msg)
             print(msg)
 
     def setup(self):
