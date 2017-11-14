@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 from config import cluster
+from server import Server
 
 BUFFER_SIZE = 1024
 threads = []
@@ -12,7 +13,7 @@ def listen_client():
     client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_sock.bind(CLIENT_ADDR)
     print("Client socket created")
-    client_sock.listen(1)
+    # client_sock.listen(1)
     conn, addr = client_sock.accept()
     while True:
         data, addr = conn.recvfrom(BUFFER_SIZE)
