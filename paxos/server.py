@@ -13,11 +13,10 @@ class Server:
         self.run()
 
     def send_data(self, data, addr):
-        print(data)
         msg = bytes(data, encoding="ascii")
         if addr != self.server_addr:
             self.sock.sendto(msg, addr)
-            print("Message sent to", addr)
+            print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
         for identifier, addr in cluster.items():
@@ -28,10 +27,11 @@ class Server:
             data, addr = self.sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
             self.log.append(msg)
-            print(msg)
+            print("Received {} from {}".format(msg, addr))
             if msg == "yo":
                 return_msg = "Return"
                 self.send_data(return_msg, addr)
+                print("Returned msg")
 
 
     def setup(self):
