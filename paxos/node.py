@@ -1,3 +1,17 @@
+class Messenger:
+    def send_prepare(self, proposal_id):
+        pass
+
+    def send_promise(self, proposer_uid, proposal_id, previous_id, accepted_val):
+        pass
+
+    def send_accept(self, proposal_id, proposal_val):
+        pass
+
+    def send_accepted(self, proposal_id, accepted_val):
+        pass
+
+
 class Proposer:
     def __init__(self, uid):
         self.uid = uid
