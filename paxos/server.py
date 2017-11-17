@@ -7,6 +7,7 @@ threads = []
 
 class Server:
     def __init__(self, server_addr):
+        self.leader = False
         self.server_addr = server_addr
         self.log = []
         self.setup()
@@ -28,10 +29,19 @@ class Server:
             msg = data.decode("utf-8")
             self.log.append(msg)
             print("Received {} from {}".format(msg, addr))
-            if msg == "yo":
-                return_msg = "Return"
-                self.send_data(return_msg, addr)
-                print("Returned msg")
+            if msg == "prepare":
+                promise_msg = "promise"
+                self.send_data(promise_msg, addr)
+                print("Returned promise")
+            if msg == "promise":
+                accept_msg = "accept"
+                self.send_data(accept_msg, addr)
+            if msg == "accept":
+                accepted_msg = "accepted"
+                self.send_data(accepted_msg, addr)
+            if msg == "accepted":
+                self.leader = True
+                print("I am leader")
 
 
     def setup(self):
