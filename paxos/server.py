@@ -1,17 +1,23 @@
 import socket
 from threading import Thread
+from math import ceil
 from config import cluster
 
 BUFFER_SIZE = 1024
 threads = []
+quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
 
 class Server:
     def __init__(self, server_addr):
+        self.uid = server_addr
         self.leader = False
         self.server_addr = server_addr
         self.log = []
         self.setup()
         self.run()
+
+    def prepare(self):
+        self.recv_promises = set()
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
@@ -20,6 +26,9 @@ class Server:
             print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
+        if data == "election":
+            self.prepare()
+            data = "prepare"
         for identifier, addr in cluster.items():
             self.send_data(data, addr)
 
@@ -40,8 +49,10 @@ class Server:
                 accepted_msg = "accepted"
                 self.send_data(accepted_msg, addr)
             if msg == "accepted":
-                self.leader = True
-                print("I am leader")
+                self.recv_promises.add(addr)
+                if len(self.recv_promises) >= quorum_size:
+                    self.leader = True
+                    print("I am leader")
 
 
     def setup(self):
