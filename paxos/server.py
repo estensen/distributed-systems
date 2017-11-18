@@ -8,8 +8,8 @@ from config import cluster
 BUFFER_SIZE = 1024
 threads = []
 QUORUM_SIZE = ceil(len(cluster) / 2)  # (n / 2) + 1
-HEARTBEAT_FREQ = 5
-heartbeat_delta = HEARTBEAT_FREQ * 2 + random() * 4
+HEARTBEAT_FREQ = 3
+heartbeat_delta = HEARTBEAT_FREQ * 3 + random() * 8
 
 class Server:
     def __init__(self, server_addr):
@@ -66,12 +66,13 @@ class Server:
         print("Heart up and running")
         while True:
             if self.leader:
+                self.last_recv_heartbeat = time()
                 self.send_data_to_all("heartbeat")
             sleep(HEARTBEAT_FREQ)
 
     def listen_for_heartbeats(self):
         while True:
-            sleep(HEARTBEAT_FREQ * 2 + random() * 4)
+            sleep(heartbeat_delta)
             if not self.leader:
                 if self.last_recv_heartbeat == None:
                     self.send_data_to_all("election")
