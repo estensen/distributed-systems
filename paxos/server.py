@@ -1,17 +1,21 @@
 import socket
 from threading import Thread
+from random import random
 from math import ceil
-from time import sleep
+from time import sleep, time
 from config import cluster
 
 BUFFER_SIZE = 1024
 threads = []
-quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
+QUORUM_SIZE = ceil(len(cluster) / 2)  # (n / 2) + 1
+HEARTBEAT_FREQ = 5
+heartbeat_delta = HEARTBEAT_FREQ * 2 + random() * 4
 
 class Server:
     def __init__(self, server_addr):
         self.uid = server_addr
         self.leader = False
+        self.last_recv_heartbeat = None
         self.server_addr = server_addr
         self.log = []
         self.setup()
@@ -44,25 +48,37 @@ class Server:
                 promise_msg = "promise"
                 self.send_data(promise_msg, addr)
                 print("Returned promise")
-            if msg == "promise":
+            elif msg == "promise":
                 accept_msg = "accept"
                 self.send_data(accept_msg, addr)
-            if msg == "accept":
+            elif msg == "accept":
                 accepted_msg = "accepted"
                 self.send_data(accepted_msg, addr)
-            if msg == "accepted":
+            elif msg == "accepted":
                 self.recv_promises.add(addr)
-                if len(self.recv_promises) >= quorum_size:
+                if len(self.recv_promises) >= QUORUM_SIZE:
                     self.leader = True
                     print("I am leader")
+            elif msg == "heartbeat":
+                self.last_recv_heartbeat = time()
 
     def heartbeat(self):
         print("Heart up and running")
         while True:
             if self.leader:
                 self.send_data_to_all("heartbeat")
-            sleep(5)
+            sleep(HEARTBEAT_FREQ)
 
+    def listen_for_heartbeats(self):
+        while True:
+            sleep(HEARTBEAT_FREQ * 2 + random() * 4)
+            if not self.leader:
+                if self.last_recv_heartbeat == None:
+                    self.send_data_to_all("election")
+                    self.last_recv_heartbeat = time()
+                delta = time() - self.last_recv_heartbeat
+                if delta > heartbeat_delta:
+                    self.send_data_to_all("election")
 
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -77,6 +93,10 @@ class Server:
         heartbeat_thread = Thread(target=self.heartbeat)
         threads.append(heartbeat_thread)
         heartbeat_thread.start()
+
+        listen_heartbeats_thread = Thread(target=self.listen_for_heartbeats)
+        threads.append(listen_heartbeats_thread)
+        listen_heartbeats_thread.start()
 
     def run(self):
         pass
