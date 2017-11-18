@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 from math import ceil
+from time import sleep
 from config import cluster
 
 BUFFER_SIZE = 1024
@@ -33,6 +34,7 @@ class Server:
             self.send_data(data, addr)
 
     def listen(self):
+        print("Listening")
         while True:
             data, addr = self.sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
@@ -54,6 +56,13 @@ class Server:
                     self.leader = True
                     print("I am leader")
 
+    def heartbeat(self):
+        print("Heart up and running")
+        while True:
+            if self.leader:
+                self.send_data_to_all("heartbeat")
+            sleep(5)
+
 
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -64,7 +73,10 @@ class Server:
         listen_thread = Thread(target=self.listen)
         threads.append(listen_thread)
         listen_thread.start()
-        print("Listening")
+
+        heartbeat_thread = Thread(target=self.heartbeat)
+        threads.append(heartbeat_thread)
+        heartbeat_thread.start()
 
     def run(self):
         pass
