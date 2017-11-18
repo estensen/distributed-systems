@@ -13,16 +13,30 @@ heartbeat_delta = HEARTBEAT_FREQ * 3 + random() * 8
 
 class Server:
     def __init__(self, server_addr):
-        self.uid = server_addr
+        self.uid = server_addr[1]
         self.leader = False
         self.last_recv_heartbeat = None
         self.server_addr = server_addr
+
+        self.proposal_id = None
+        self.proposal_val = None
+        self.next_proposal_num = 1
+        self.last_accepted_id = None
+
         self.log = []
         self.setup()
         self.run()
 
-    def prepare(self):
+    def set_proposal(self, val):
+        if self.proposal_val == None:
+            self.proposal_val = val
+
+    def send_prepare(self):
+        self.proposal_id = (self.next_proposal_num, self.uid)
+        self.next_proposal_num += 1
         self.recv_promises = set()
+        data = "prepare,{}".format(self.proposal_id)
+        self.send_data_to_all(data)
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
@@ -32,7 +46,7 @@ class Server:
 
     def send_data_to_all(self, data):
         if data == "election":
-            self.prepare()
+            self.send_prepare()
             data = "prepare"
         for identifier, addr in cluster.items():
             self.send_data(data, addr)
