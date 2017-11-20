@@ -38,6 +38,14 @@ class Server:
         data = "prepare,{}".format(self.proposal_id)
         self.send_data_to_all(data)
 
+    def recv_prepare(self, proposer_uid, proposal_id):
+        if self.promised_id = None:
+            self.promised_id = proposal_id
+            self.accept_proposal(uid, proposal_id)
+        promise_msg = "promise"
+        self.send_data(promise_msg, addr)
+        print("Returned promise")
+
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
         if addr != self.server_addr:
@@ -59,9 +67,7 @@ class Server:
             self.log.append(msg)
             print("Received {} from {}".format(msg, addr))
             if msg == "prepare":
-                promise_msg = "promise"
-                self.send_data(promise_msg, addr)
-                print("Returned promise")
+                self.recv_prepare()
             elif msg == "promise":
                 accept_msg = "accept"
                 self.send_data(accept_msg, addr)
