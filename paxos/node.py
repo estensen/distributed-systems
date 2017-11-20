@@ -56,6 +56,7 @@ class Proposer:
 
         if len(self.recv_promises) > self.quorum_size:
             # After received ack from majority
+            self.leader = True
             self.messenger.send_accept(self.proposal_id, self.proposal_val)
 
 
