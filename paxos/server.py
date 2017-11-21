@@ -39,7 +39,7 @@ class Server:
         self.send_data_to_all(data)
 
     def recv_prepare(self, proposer_uid, proposal_id):
-        if self.promised_id = None:
+        if self.promised_id == None:
             self.promised_id = proposal_id
             self.accept_proposal(uid, proposal_id)
         promise_msg = "promise"
