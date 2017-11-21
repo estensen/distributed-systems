@@ -66,20 +66,24 @@ class Server:
             msg = data.decode("utf-8")
             self.log.append(msg)
             print("Received {} from {}".format(msg, addr))
-            if msg == "prepare":
+
+            msg_list = msg.split(",")
+            command = msg_list[0]
+
+            if command == "prepare":
                 self.recv_prepare()
-            elif msg == "promise":
+            elif command == "promise":
                 accept_msg = "accept"
                 self.send_data(accept_msg, addr)
-            elif msg == "accept":
+            elif command == "accept":
                 accepted_msg = "accepted"
                 self.send_data(accepted_msg, addr)
-            elif msg == "accepted":
+            elif command == "accepted":
                 self.recv_promises.add(addr)
                 if len(self.recv_promises) >= QUORUM_SIZE:
                     self.leader = True
                     print("I am leader")
-            elif msg == "heartbeat":
+            elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
 
     def heartbeat(self):
