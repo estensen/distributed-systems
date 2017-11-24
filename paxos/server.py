@@ -21,7 +21,10 @@ class Server:
         self.proposal_id = None
         self.proposal_val = None
         self.next_proposal_num = 1
-        self.last_accepted_id = None
+        # self.last_accepted_id = None
+        self.last_accepted_num = None
+        self.last_accepted_val = None
+        self.promised_id = None
 
         self.log = []
         self.setup()
@@ -31,20 +34,32 @@ class Server:
         if self.proposal_val == None:
             self.proposal_val = val
 
+    def accept_proposal(self, from_uid, proposal_id):
+        pass
+
     def send_prepare(self):
         self.proposal_id = (self.next_proposal_num, self.uid)
         self.next_proposal_num += 1
         self.recv_promises = set()
-        data = "prepare,{}".format(self.proposal_id)
+        data = "prepare,{},{}".format(self.proposal_id[0], self.proposal_id[1])
         self.send_data_to_all(data)
 
-    def recv_prepare(self, proposer_uid, proposal_id):
-        if self.promised_id == None:
+    def recv_prepare(self, proposal_num, proposer_id):
+        proposal_id = (proposal_num, proposer_id)
+        if self.promised_id == None or proposal_id > self.promised_id:
+            # Higher than current promise
             self.promised_id = proposal_id
-            self.accept_proposal(uid, proposal_id)
-        promise_msg = "promise"
-        self.send_data(promise_msg, addr)
-        print("Returned promise")
+            #self.accept_proposal(from_uid, proposal_id)
+
+            promise_msg = "promise,{},{},{}".format(
+                self.proposal_id,
+                self.last_accepted_num,
+                self.last_accepted_val)
+
+            from_addr = ("localhost", int(proposal_id[1]))
+            self.send_data(promise_msg, from_addr)
+            print("Returned promise")
+
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
@@ -55,9 +70,9 @@ class Server:
     def send_data_to_all(self, data):
         if data == "election":
             self.send_prepare()
-            data = "prepare"
-        for identifier, addr in cluster.items():
-            self.send_data(data, addr)
+        else:
+            for identifier, addr in cluster.items():
+                self.send_data(data, addr)
 
     def listen(self):
         print("Listening")
@@ -68,10 +83,13 @@ class Server:
             print("Received {} from {}".format(msg, addr))
 
             msg_list = msg.split(",")
+            print("msg_list", msg_list)
             command = msg_list[0]
 
             if command == "prepare":
-                self.recv_prepare()
+                from_uid = msg_list[1]
+                proposal_id = msg_list[2]
+                self.recv_prepare(from_uid, proposal_id)
             elif command == "promise":
                 accept_msg = "accept"
                 self.send_data(accept_msg, addr)
@@ -79,6 +97,7 @@ class Server:
                 accepted_msg = "accepted"
                 self.send_data(accepted_msg, addr)
             elif command == "accepted":
+
                 self.recv_promises.add(addr)
                 if len(self.recv_promises) >= QUORUM_SIZE:
                     self.leader = True
