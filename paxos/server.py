@@ -64,7 +64,7 @@ class Server:
 
     def recv_promise(self, msg_list):
         proposal_num, proposer_id, from_uid, last_accepted_num, \
-        last_accepted_propser_id, last_accepted_val = msg_list[1:]
+        last_accepted_proposer_id, last_accepted_val = msg_list[1:]
 
         if last_accepted_num != "None" and last_accepted_proposer_id != "None":
             if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
