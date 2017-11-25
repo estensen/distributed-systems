@@ -132,16 +132,22 @@ class Server:
             print("msg_list", msg_list)
             command = msg_list[0]
 
+            # Phase 1
             if command == "prepare":
                 self.recv_prepare(msg_list)
             elif command == "promise":
                 self.recv_promise(msg_list)
+
+            # Phase 2
             elif command == "accept":
                 self.recv_accept(msg_list)
             elif command == "accepted":
                 self.recv_accepted(msg_list)
+
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
+            else:
+                print("Message command {} not recognized".format(command))
 
     def heartbeat(self):
         while True:
