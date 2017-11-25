@@ -121,7 +121,8 @@ class Server:
         self.log.append(msg)
         print("log", self.log)
 
-    def recv_buy(self, msg_list):
+    def recv_buy(self, msg):
+        msg_list = msg.split(",")
         amount = msg_list[1]
         print("Buy " + amount + " pls!")
         # Send client msg back
@@ -131,6 +132,7 @@ class Server:
             self.proposal_val = amount
             self.send_accepts()
         else:
+            self.send_data_to_others(msg)
             print("Have to relay to leader")
 
     def recv_show(self, msg_list):
@@ -149,6 +151,11 @@ class Server:
         for identifier, addr in cluster.items():
             self.send_data(data, addr)
 
+    def send_data_to_others(self, data):
+        for identifier, addr in cluster.items():
+            if addr != self.server_addr:
+                self.send_data(data, addr)
+
     def listen(self):
         print("Listening")
         while True:
@@ -163,7 +170,7 @@ class Server:
                 print("msg_list", msg_list)
 
             if command == "buy":
-                self.recv_buy(msg_list)
+                self.recv_buy(msg)
 
             elif command == "show":
                 self.recv_show(msg_list)
