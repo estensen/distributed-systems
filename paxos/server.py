@@ -128,12 +128,8 @@ class Server:
             print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
-        if data == "election":
-            # Temporary to inject msgs
-            self.send_prepare()
-        else:
-            for identifier, addr in cluster.items():
-                self.send_data(data, addr)
+        for identifier, addr in cluster.items():
+            self.send_data(data, addr)
 
     def listen(self):
         print("Listening")
@@ -205,11 +201,11 @@ class Server:
             sleep(heartbeat_delta)
             if not self.leader:
                 if self.last_recv_heartbeat == None:
-                    self.send_data_to_all("election")
+                    self.send_prepare()
                     self.last_recv_heartbeat = time()
                 delta = time() - self.last_recv_heartbeat
                 if delta > heartbeat_delta:
-                    self.send_data_to_all("election")
+                    self.send_prepare()
 
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -231,6 +227,3 @@ class Server:
 
     def run(self):
         pass
-        #send_thread = Thread(target=send_data, args=(self.sock, ))
-        #threads.append(send_thread)
-        #send_thread.start()
