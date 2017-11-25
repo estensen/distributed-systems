@@ -98,7 +98,8 @@ class Server:
         to_addr = ("localhost", int(self.last_accepted_proposer_id))
         self.send_data(accepted_data, to_addr)
 
-    def recv_accepts(self, proposal_num, proposer_id, from_uid, proposal_val):
+    def recv_accepts(self, msg_list):
+        proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
         self.recv_accepts_uid.add(from_uid)
 
         if len(self.recv_accepts_uid) >= QUORUM_SIZE:
@@ -137,8 +138,7 @@ class Server:
             elif command == "accept":
                 self.recv_accept(msg_list)
             elif command == "accepted":
-                self.leader = True
-                print("I am leader")
+                self.recv_accepts(msg_list)
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
 
