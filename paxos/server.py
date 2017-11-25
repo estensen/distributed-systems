@@ -17,6 +17,7 @@ class Server:
         self.leader = False
         self.last_recv_heartbeat = None
         self.server_addr = server_addr
+        self.tickets_available = 20
 
         self.proposal_id = 0
         self.proposal_val = None
@@ -178,10 +179,14 @@ class Server:
                 self.recv_accepted(msg_list)
 
             # Phase 3
-            # Decide and inform
-            # Commit to log
             elif command == "learn":
-                self.commit_to_log(msg_list)
+                tickets = msg_list[3]
+                print(tickets)
+                if tickets.isdigit() and self.tickets_available - int(tickets) > 0:
+                    self.tickets_available -= int(tickets)
+                    print(str(self.tickets_available) + " left")
+
+                    self.commit_to_log(msg_list)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
