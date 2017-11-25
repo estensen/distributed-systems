@@ -18,13 +18,13 @@ class Server:
         self.last_recv_heartbeat = None
         self.server_addr = server_addr
 
-        self.proposal_id = None
+        self.proposal_id = 0
         self.proposal_val = None
         self.next_proposal_num = 1
-        self.last_accepted_num = None
-        self.last_accepted_proposer_id = None
+        self.last_accepted_num = 0
+        self.last_accepted_proposer_id = 0
         self.last_accepted_val = None
-        self.promised_id = None
+        self.promised_id = (0, 0)
 
         self.log = []
         self.setup()
@@ -44,8 +44,8 @@ class Server:
 
     def recv_prepare(self, msg_list):
         proposal_num, proposer_id = msg_list[1:]
-        proposal_id = (proposal_num, proposer_id)
-        if self.promised_id == None or proposal_id >= self.promised_id:
+        proposal_id = (int(proposal_num), int(proposer_id))
+        if proposal_id >= self.promised_id:
             # Higher than current promise
             self.promised_id = proposal_id
 
@@ -66,11 +66,10 @@ class Server:
         proposal_num, proposer_id, from_uid, last_accepted_num, \
         last_accepted_proposer_id, last_accepted_val = msg_list[1:]
 
-        if last_accepted_num != "None" and last_accepted_proposer_id != "None":
-            if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
-                # And > id
-                # An acceptor has already accepted a val
-                self.proposal_val = last_accepted_val
+        if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
+            # And > id
+            # An acceptor has already accepted a val
+            self.proposal_val = last_accepted_val
 
         self.recv_promises_uid.add(from_uid)
         if len(self.recv_promises_uid) >= QUORUM_SIZE:
@@ -82,7 +81,7 @@ class Server:
 
     def recv_accept(self, msg_list):
         proposal_num, proposer_id, proposal_val = msg_list[1:]
-        proposal_id = (proposal_num, proposer_id)
+        proposal_id = (int(proposal_num), int(proposer_id))
 
         if proposal_id >= self.promised_id:
             # Accept proposal
@@ -143,6 +142,9 @@ class Server:
                 self.recv_accept(msg_list)
             elif command == "accepted":
                 self.recv_accepted(msg_list)
+
+            # Phase 3
+            # Decide and inform
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
