@@ -42,7 +42,8 @@ class Server:
         data = "prepare,{},{}".format(self.proposal_id[0], self.proposal_id[1])
         self.send_data_to_all(data)
 
-    def recv_prepare(self, proposal_num, proposer_id):
+    def recv_prepare(self, msg_list):
+        proposal_num, proposer_id = msg_list[1:]
         proposal_id = (proposal_num, proposer_id)
         if self.promised_id == None or proposal_id >= self.promised_id:
             # Higher than current promise
@@ -61,24 +62,28 @@ class Server:
             self.send_data(promise_msg, from_addr)
             print("Returned promise")
 
-    def recv_promise(self, proposal_num, proposer_id, from_uid, \
-        last_accepted_num, last_accepted_proposer_id, last_accepted_val):
-            if last_accepted_num != "None" and last_accepted_proposer_id != "None":
-                if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
-                    # And > id
-                    # An acceptor has already accepted a val
-                    self.proposal_val = last_accepted_val
+    def recv_promise(self, msg_list):
+        proposal_num, proposer_id, from_uid, last_accepted_num, \
+        last_accepted_propser_id, last_accepted_val = msg_list[1:]
 
-            self.recv_promises_uid.add(from_uid)
-            if len(self.recv_promises_uid) >= QUORUM_SIZE:
-                self.send_accepts()
+        if last_accepted_num != "None" and last_accepted_proposer_id != "None":
+            if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
+                # And > id
+                # An acceptor has already accepted a val
+                self.proposal_val = last_accepted_val
+
+        self.recv_promises_uid.add(from_uid)
+        if len(self.recv_promises_uid) >= QUORUM_SIZE:
+            self.send_accepts()
 
     def send_accepts(self):
         data = "accept,{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val)
         self.send_data_to_all(data)
 
-    def recv_accept(self, proposal_num, proposer_id, proposal_val):
+    def recv_accept(self, msg_list):
+        proposal_num, proposer_id, proposal_val = msg_list[1:]
         proposal_id = (proposal_num, proposer_id)
+
         if proposal_id >= self.promised_id:
             # Accept proposal
             self.last_accepted_num = proposal_num
@@ -126,20 +131,11 @@ class Server:
             command = msg_list[0]
 
             if command == "prepare":
-                from_uid = msg_list[1]
-                proposal_id = msg_list[2]
-                self.recv_prepare(from_uid, proposal_id)
+                self.recv_prepare(msg_list)
             elif command == "promise":
-                proposal_num, proposer_id, from_uid, last_accepted_num, \
-                last_accepted_propser_id, last_accepted_val = msg_list[1:]
-
-                self.recv_promise(proposal_num, proposer_id, from_uid, \
-                    last_accepted_num, last_accepted_propser_id, last_accepted_val)
-                #accept_msg = "accept"
-                #self.send_data(accept_msg, addr)
+                self.recv_promise(msg_list)
             elif command == "accept":
-                proposal_num, proposer_id, proposal_val = msg_list[1:]
-                self.recv_accept(proposal_num, proposer_id, proposal_val)
+                self.recv_accept(msg_list)
             elif command == "accepted":
                 self.leader = True
                 print("I am leader")
