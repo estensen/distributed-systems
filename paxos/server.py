@@ -123,7 +123,8 @@ class Server:
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
         self.sock.sendto(msg, addr)
-        print("Message {} sent to {}".format(data, addr))
+        if data[:9] != "heartbeat":
+            print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
         if data == "election":
@@ -138,18 +139,23 @@ class Server:
         while True:
             data, addr = self.sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
-            print("Received {} from {}".format(msg, addr))
 
             msg_list = msg.split(",")
-            print("msg_list", msg_list)
             command = msg_list[0]
 
+            if command != "heartbeat":
+                print("Received {} from {}".format(msg, addr))
+                print("msg_list", msg_list)
+
             if command == "buy":
-                print("Buy pls!")
+                amount = msg_list[1]
+                print("Buy " + amount + " pls!")
                 # Send client msg back
 
                 if self.leader:
                     print("Will buy")
+                    self.proposal_val = amount
+                    self.send_accepts()
                 else:
                     print("Have to relay to leader")
 
