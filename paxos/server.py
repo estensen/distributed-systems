@@ -121,6 +121,24 @@ class Server:
         self.log.append(msg)
         print("log", self.log)
 
+    def recv_buy(self, msg_list):
+        amount = msg_list[1]
+        print("Buy " + amount + " pls!")
+        # Send client msg back
+
+        if self.leader:
+            print("Will buy")
+            self.proposal_val = amount
+            self.send_accepts()
+        else:
+            print("Have to relay to leader")
+
+    def recv_show(self, msg_list):
+        addr = ("localhost", int(msg_list[1]))
+        # Send local log to client
+        log_str = ",".join(map(str, self.log))
+        self.send_data(log_str, addr)
+
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
         self.sock.sendto(msg, addr)
@@ -145,22 +163,10 @@ class Server:
                 print("msg_list", msg_list)
 
             if command == "buy":
-                amount = msg_list[1]
-                print("Buy " + amount + " pls!")
-                # Send client msg back
-
-                if self.leader:
-                    print("Will buy")
-                    self.proposal_val = amount
-                    self.send_accepts()
-                else:
-                    print("Have to relay to leader")
+                self.recv_buy(msg_list)
 
             elif command == "show":
-                addr = ("localhost", int(msg_list[1]))
-                # Send local log to client
-                log_str = ",".join(map(str, self.log))
-                self.send_data(log_str, addr)
+                self.recv_show(msg_list)
 
             # Phase 1
             elif command == "prepare":
