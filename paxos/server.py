@@ -39,7 +39,9 @@ class Server:
         self.next_proposal_num += 1
         self.recv_promises_uid = set()
         self.recv_accepted_uid = set()
-        data = "prepare,{},{}".format(self.proposal_id[0], self.proposal_id[1])
+        proposal_num = self.proposal_id[0]
+        proposal_id = self.proposal_id[1]
+        data = "prepare,{},{}".format(proposal_num, proposal_id)
         self.send_data_to_all(data)
 
     def recv_prepare(self, msg_list):
@@ -67,13 +69,13 @@ class Server:
         last_accepted_proposer_id, last_accepted_val = msg_list[1:]
 
         if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
-            # And > id
             # An acceptor has already accepted a val
             self.proposal_val = last_accepted_val
 
         self.recv_promises_uid.add(from_uid)
-        if len(self.recv_promises_uid) >= QUORUM_SIZE:
-            self.send_accepts()
+        if not self.leader:
+            if len(self.recv_promises_uid) >= QUORUM_SIZE - 1:
+                self.send_accepts()
 
     def send_accepts(self):
         data = "accept,{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val)
@@ -101,9 +103,10 @@ class Server:
         proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
         self.recv_accepted_uid.add(from_uid)
 
-        if len(self.recv_accepted_uid) >= QUORUM_SIZE:
-            self.leader = True
-            print("I am leader")
+        if not self.leader:
+            if len(self.recv_accepted_uid) >= QUORUM_SIZE - 1:
+                self.leader = True
+                print("I am leader")
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
@@ -145,6 +148,7 @@ class Server:
 
             # Phase 3
             # Decide and inform
+            # Commit to log
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
