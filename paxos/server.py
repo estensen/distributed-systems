@@ -159,9 +159,11 @@ class Server:
                 else:
                     print("Have to relay to leader")
 
-            elif command == "log":
+            elif command == "show":
+                addr = ("localhost", int(msg_list[1]))
                 # Send local log to client
-                pass
+                log_str = ",".join(map(str, self.log))
+                self.send_data(log_str, addr)
 
             # Phase 1
             elif command == "prepare":

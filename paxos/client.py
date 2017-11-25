@@ -1,18 +1,24 @@
 import socket
-from config import cluster
 from time import sleep
+from threading import Thread
+from config import cluster
 
+BUFFER_SIZE = 1024
 
-address_choice = input("Which datacenter do you want to connect to? (A, B or C) ")
-data_center_addr = cluster[address_choice]
-#data_center_addr = ("localhost", 1337)
-connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+identifier = input("Which datacenter do you want to connect to? (A, B or C) ")
+server_addr = cluster[identifier]
+client_addr = (server_addr[0], server_addr[1] + 10)
+
+server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+client_sock.bind(client_addr)
 
 
 def send_msg(data):
     msg = bytes(data, encoding="ascii")
-    connection.sendto(msg, data_center_addr)
-    print("Message sent to", data_center_addr)
+    server_sock.sendto(msg, server_addr)
+    print("Message sent to", server_addr)
+    print("Own addr", client_addr)
 
 
 def process_user_input(user_input):
@@ -22,11 +28,22 @@ def process_user_input(user_input):
         arg = words[1]
 
     if command == "show":
-        send_msg("show")
+        send_msg("show," + str(client_addr[1]))
     elif command == "buy" and arg.isdigit():
-        send_msg("{},{}".format(command, arg))
+        send_msg("{},{},{}".format(command, arg, client_addr))
     else:
         print("Couldn't recognize the command", user_input)
+
+
+def listen():
+    while True:
+        data, addr = client_sock.recvfrom(BUFFER_SIZE)
+        msg = data.decode("utf-8")
+        print(msg)
+
+
+listen_thread = Thread(target=listen)
+listen_thread.start()
 
 
 while True:
