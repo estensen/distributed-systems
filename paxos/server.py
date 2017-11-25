@@ -38,7 +38,7 @@ class Server:
         self.proposal_id = (self.next_proposal_num, self.uid)
         self.next_proposal_num += 1
         self.recv_promises_uid = set()
-        self.recv_accepts_uid = set()
+        self.recv_accepted_uid = set()
         data = "prepare,{},{}".format(self.proposal_id[0], self.proposal_id[1])
         self.send_data_to_all(data)
 
@@ -98,11 +98,11 @@ class Server:
         to_addr = ("localhost", int(self.last_accepted_proposer_id))
         self.send_data(accepted_data, to_addr)
 
-    def recv_accepts(self, msg_list):
+    def recv_accepted(self, msg_list):
         proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
-        self.recv_accepts_uid.add(from_uid)
+        self.recv_accepted_uid.add(from_uid)
 
-        if len(self.recv_accepts_uid) >= QUORUM_SIZE:
+        if len(self.recv_accepted_uid) >= QUORUM_SIZE:
             self.leader = True
             print("I am leader")
 
@@ -114,6 +114,7 @@ class Server:
 
     def send_data_to_all(self, data):
         if data == "election":
+            # Temporary to inject msgs
             self.send_prepare()
         else:
             for identifier, addr in cluster.items():
@@ -138,12 +139,11 @@ class Server:
             elif command == "accept":
                 self.recv_accept(msg_list)
             elif command == "accepted":
-                self.recv_accepts(msg_list)
+                self.recv_accepted(msg_list)
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
 
     def heartbeat(self):
-        print("Heart up and running")
         while True:
             if self.leader:
                 self.last_recv_heartbeat = time()
