@@ -74,7 +74,7 @@ class Server:
 
         self.recv_promises_uid.add(from_uid)
         if not self.leader:
-            if len(self.recv_promises_uid) >= QUORUM_SIZE - 1:
+            if len(self.recv_promises_uid) >= QUORUM_SIZE:
                 self.send_accepts()
 
     def send_accepts(self):
@@ -104,7 +104,7 @@ class Server:
         self.recv_accepted_uid.add(from_uid)
 
         if not self.leader:
-            if len(self.recv_accepted_uid) >= QUORUM_SIZE - 1:
+            if len(self.recv_accepted_uid) >= QUORUM_SIZE:
                 self.leader = True
                 print("I am leader")
                 self.send_learn()
@@ -122,9 +122,8 @@ class Server:
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
-        if addr != self.server_addr:
-            self.sock.sendto(msg, addr)
-            print("Message {} sent to {}".format(data, addr))
+        self.sock.sendto(msg, addr)
+        print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
         if data == "election":
