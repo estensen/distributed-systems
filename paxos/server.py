@@ -107,6 +107,18 @@ class Server:
             if len(self.recv_accepted_uid) >= QUORUM_SIZE - 1:
                 self.leader = True
                 print("I am leader")
+                self.send_learn()
+
+    def send_learn(self):
+        proposal_num = self.proposal_id[0]
+        proposal_id = self.proposal_id[1]
+        data = "learn,{},{},{}".format(proposal_num, proposal_id, self.proposal_val)
+        self.send_data_to_all(data)
+
+    def commit_to_log(self, msg_list):
+        msg = msg_list[1:]
+        self.log.append(msg)
+        print("log", self.log)
 
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
@@ -127,7 +139,6 @@ class Server:
         while True:
             data, addr = self.sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
-            self.log.append(msg)
             print("Received {} from {}".format(msg, addr))
 
             msg_list = msg.split(",")
@@ -149,6 +160,8 @@ class Server:
             # Phase 3
             # Decide and inform
             # Commit to log
+            elif command == "learn":
+                self.commit_to_log(msg_list)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
