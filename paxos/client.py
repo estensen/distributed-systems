@@ -4,18 +4,14 @@ from time import sleep
 
 
 address_choice = input("Which datacenter do you want to connect to? (A, B or C) ")
-data_center_addr = ("localhost", cluster[address_choice][1] + 10)
+data_center_addr = cluster[address_choice]
 #data_center_addr = ("localhost", 1337)
-connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-connection.connect(data_center_addr)
+connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
 def send_msg(data):
     msg = bytes(data, encoding="ascii")
-    if not msg:
-        connection.close()
-        print("Closing connection...")
-    connection.send(msg)
+    connection.sendto(msg, data_center_addr)
     print("Message sent to", data_center_addr)
 
 

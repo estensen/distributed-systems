@@ -144,8 +144,17 @@ class Server:
             print("msg_list", msg_list)
             command = msg_list[0]
 
+            if command == "buy":
+                print("Buy pls!")
+                # Send client msg back
+
+                if self.leader:
+                    print("Will buy")
+                else:
+                    print("Have to relay to leader")
+
             # Phase 1
-            if command == "prepare":
+            elif command == "prepare":
                 self.recv_prepare(msg_list)
             elif command == "promise":
                 self.recv_promise(msg_list)
@@ -185,28 +194,6 @@ class Server:
                 if delta > heartbeat_delta:
                     self.send_data_to_all("election")
 
-    def listen_client(self):
-        # Create socket to receive msgs from client
-        CLIENT_ADDR = ("localhost", self.server_addr[1] + 10)
-        client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_sock.bind(CLIENT_ADDR)
-        print("Client socket created")
-        client_sock.listen(1)
-        conn, addr = client_sock.accept()
-
-        while True:
-            data, addr = conn.recvfrom(BUFFER_SIZE)
-            if not data:
-                conn.close()
-            msg = data.decode("utf-8")
-            print(msg)
-
-            msg_list = msg.split(",")
-            command = msg_list[0]
-
-            if command == "buy":
-                print("Buy pls!")
-
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(self.server_addr)
@@ -224,10 +211,6 @@ class Server:
         listen_heartbeats_thread = Thread(target=self.listen_for_heartbeats)
         threads.append(listen_heartbeats_thread)
         listen_heartbeats_thread.start()
-
-        listen_client_thread = Thread(target=self.listen_client)
-        threads.append(listen_client_thread)
-        listen_client_thread.start()
 
     def run(self):
         pass
