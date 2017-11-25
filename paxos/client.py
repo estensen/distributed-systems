@@ -10,8 +10,8 @@ connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection.connect(data_center_addr)
 
 
-def send_msg(msg):
-    msg = bytes(user_input, encoding="ascii")
+def send_msg(data):
+    msg = bytes(data, encoding="ascii")
     if not msg:
         connection.close()
         print("Closing connection...")

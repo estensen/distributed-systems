@@ -193,12 +193,19 @@ class Server:
         print("Client socket created")
         client_sock.listen(1)
         conn, addr = client_sock.accept()
+
         while True:
             data, addr = conn.recvfrom(BUFFER_SIZE)
             if not data:
                 conn.close()
             msg = data.decode("utf-8")
             print(msg)
+
+            msg_list = msg.split(",")
+            command = msg_list[0]
+
+            if command == "buy":
+                print("Buy pls!")
 
     def setup(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
