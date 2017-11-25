@@ -8,8 +8,8 @@ from config import cluster
 BUFFER_SIZE = 1024
 threads = []
 QUORUM_SIZE = ceil(len(cluster) / 2)  # (n / 2) + 1
-HEARTBEAT_FREQ = 3
-heartbeat_delta = HEARTBEAT_FREQ * 3 + random() * 8
+HEARTBEAT_FREQ = 0.3
+heartbeat_delta = HEARTBEAT_FREQ * 2 + random()
 
 class Server:
     def __init__(self, server_addr):
