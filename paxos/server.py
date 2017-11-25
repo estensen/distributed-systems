@@ -38,7 +38,6 @@ class Server:
         self.proposal_id = (self.next_proposal_num, self.uid)
         self.next_proposal_num += 1
         self.recv_promises_uid = set()
-        self.recv_accepted_uid = set()
         proposal_num = self.proposal_id[0]
         proposal_id = self.proposal_id[1]
         data = "prepare,{},{}".format(proposal_num, proposal_id)
@@ -78,6 +77,7 @@ class Server:
                 self.send_accepts()
 
     def send_accepts(self):
+        self.recv_accepted_uid = set()
         data = "accept,{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val)
         self.send_data_to_all(data)
 
@@ -103,11 +103,11 @@ class Server:
         proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
         self.recv_accepted_uid.add(from_uid)
 
-        if not self.leader:
-            if len(self.recv_accepted_uid) >= QUORUM_SIZE:
+        if len(self.recv_accepted_uid) >= QUORUM_SIZE:
+            if not self.leader:
                 self.leader = True
                 print("I am leader")
-                self.send_learn()
+            self.send_learn()
 
     def send_learn(self):
         proposal_num = self.proposal_id[0]
@@ -158,6 +158,10 @@ class Server:
                     self.send_accepts()
                 else:
                     print("Have to relay to leader")
+
+            elif command == "log":
+                # Send local log to client
+                pass
 
             # Phase 1
             elif command == "prepare":
