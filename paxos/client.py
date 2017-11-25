@@ -3,9 +3,9 @@ from config import cluster
 from time import sleep
 
 
-#address_choice = input("Which datacenter do you want to connect to? (A, B or C) ")
-#data_center_addr = cluster[address_choice]
-data_center_addr = ("localhost", 1337)
+address_choice = input("Which datacenter do you want to connect to? (A, B or C) ")
+data_center_addr = ("localhost", cluster[address_choice][1] + 10)
+#data_center_addr = ("localhost", 1337)
 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connection.connect(data_center_addr)
 
