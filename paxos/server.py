@@ -118,6 +118,7 @@ class Server:
         proposal_num = self.proposal_id[0]
         proposal_id = self.proposal_id[1]
         data = "learn,{},{},{}".format(proposal_num, proposal_id, self.proposal_val)
+        self.proposal_val = None
         self.send_data_to_all(data)
 
     def validate_transaction(self, msg_list):
