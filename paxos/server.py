@@ -157,6 +157,14 @@ class Server:
         log_str = ",".join(map(str, self.log))
         self.send_data(log_str, addr)
 
+    def respond_not_enough_tickets(self, msg_list):
+        if self.client_requests:
+            port = int(self.client_requests[2])
+            addr = ("localhost", port)
+            data = "Could not buy " + self.client_requests[1] + " ticket(s)"
+            self.send_data(data, addr)
+            self.client_requests = None
+
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
         self.sock.sendto(msg, addr)
@@ -207,11 +215,15 @@ class Server:
             elif command == "learn":
                 tickets = msg_list[3]
                 print(tickets)
-                if tickets.isdigit() and self.tickets_available - int(tickets) > 0:
-                    self.tickets_available -= int(tickets)
-                    print(str(self.tickets_available) + " left")
+                if tickets.isdigit():
+                    if self.tickets_available - int(tickets) > 0:
+                        self.tickets_available -= int(tickets)
+                        print(str(self.tickets_available) + " left")
 
-                    self.commit_to_log(msg)
+                        self.commit_to_log(msg)
+                    else:
+                        # Respond not enough tickets left
+                        self.respond_not_enough_tickets(msg)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
