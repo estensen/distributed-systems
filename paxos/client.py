@@ -18,7 +18,6 @@ def send_msg(data):
     msg = bytes(data, encoding="ascii")
     server_sock.sendto(msg, server_addr)
     print("Message sent to", server_addr)
-    print("Own addr", client_addr)
 
 
 def process_user_input(user_input):
@@ -30,7 +29,7 @@ def process_user_input(user_input):
     if command == "show":
         send_msg("show," + str(client_addr[1]))
     elif command == "buy" and arg.isdigit():
-        send_msg("{},{},{}".format(command, arg, client_addr))
+        send_msg("{},{},{}".format(command, arg, client_addr[1]))
     else:
         print("Couldn't recognize the command", user_input)
 

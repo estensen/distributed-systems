@@ -17,7 +17,9 @@ class Server:
         self.leader = False
         self.last_recv_heartbeat = None
         self.server_addr = server_addr
+
         self.tickets_available = 20
+        self.client_requests = None
 
         self.proposal_id = 0
         self.proposal_val = None
@@ -116,9 +118,21 @@ class Server:
         data = "learn,{},{},{}".format(proposal_num, proposal_id, self.proposal_val)
         self.send_data_to_all(data)
 
-    def commit_to_log(self, msg_list):
-        msg = msg_list[1:]
-        self.log.append(msg)
+    def commit_to_log(self, msg):
+        msg_list = msg.split(",")
+        record = msg_list[1:]
+        self.log.append(record)
+
+        if self.client_requests and self.client_requests[1] == record[2]:
+            '''
+            Compare log val with val to be commited
+            Send responce to user if same
+            '''
+            port = int(self.client_requests[2])
+            addr = ("localhost", port)
+            tickets = "Here's your " + record[2] + " ticket(s)"
+            self.send_data(tickets, addr)
+            self.client_requests = None
         print("log", self.log)
 
     def recv_buy(self, msg):
@@ -129,6 +143,7 @@ class Server:
 
         if self.leader:
             print("Will buy")
+            self.client_requests = msg_list
             self.proposal_val = amount
             self.send_accepts()
         else:
@@ -136,6 +151,7 @@ class Server:
             print("Have to relay to leader")
 
     def recv_show(self, msg_list):
+        # Must use a full Paxos instance to gain consensus on most uptdated state
         addr = ("localhost", int(msg_list[1]))
         # Send local log to client
         log_str = ",".join(map(str, self.log))
@@ -195,7 +211,7 @@ class Server:
                     self.tickets_available -= int(tickets)
                     print(str(self.tickets_available) + " left")
 
-                    self.commit_to_log(msg_list)
+                    self.commit_to_log(msg)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
