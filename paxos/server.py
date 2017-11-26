@@ -8,8 +8,8 @@ from config import cluster
 BUFFER_SIZE = 1024
 threads = []
 QUORUM_SIZE = ceil(len(cluster) / 2)  # (n / 2) + 1
-HEARTBEAT_FREQ = 0.3
-heartbeat_delta = HEARTBEAT_FREQ * 2 + random()
+HEARTBEAT_FREQ = 0.4
+heartbeat_delta = HEARTBEAT_FREQ * 2 + random() * 3
 
 class Server:
     def __init__(self, server_addr):
@@ -78,6 +78,7 @@ class Server:
         self.recv_promises_uid.add(from_uid)
         if not self.leader:
             if len(self.recv_promises_uid) >= QUORUM_SIZE:
+                self.recv_promises_uid = set()
                 self.send_accepts()
 
     def send_accepts(self):
@@ -111,6 +112,7 @@ class Server:
             self.recv_accepted_uid = set()
             if not self.leader:
                 self.leader = True
+                self.send_data_to_all("heartbeat")
                 print("I am leader")
             self.send_learn()
 
