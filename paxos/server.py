@@ -22,6 +22,7 @@ class Server:
         self.client_requests = None
 
         self.proposal_id = (0, 0)
+        # = 0?
         self.proposal_val = None
         self.next_proposal_num = 1
         self.last_accepted_num = 0
@@ -107,6 +108,7 @@ class Server:
         self.recv_accepted_uid.add(from_uid)
 
         if len(self.recv_accepted_uid) >= QUORUM_SIZE:
+            self.recv_accepted_uid = set()
             if not self.leader:
                 self.leader = True
                 print("I am leader")
@@ -131,9 +133,6 @@ class Server:
     def recv_buy(self, msg, from_uid):
         msg_list = msg.split(",")
         amount = msg_list[1]
-        print("Buy " + amount + " pls!")
-        # Send client msg back
-        print("from_uid", from_uid)
 
         if self.leader:
             print("Will buy")
@@ -201,7 +200,7 @@ class Server:
 
             if command == "buy":
                 uid = addr[1]
-                self.recv_buy(msg, addr)
+                self.recv_buy(msg, uid)
 
             elif command == "show":
                 self.recv_show(msg_list)
