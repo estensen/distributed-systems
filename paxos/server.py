@@ -21,7 +21,7 @@ class Server:
         self.tickets_available = 20
         self.client_requests = None
 
-        self.proposal_id = 0
+        self.proposal_id = (0, 0)
         self.proposal_val = None
         self.next_proposal_num = 1
         self.last_accepted_num = 0
@@ -128,11 +128,12 @@ class Server:
                 self.log.append(msg_list[1:])
             self.send_client_response(msg_list, new_ticket_balance)
 
-    def recv_buy(self, msg):
+    def recv_buy(self, msg, from_uid):
         msg_list = msg.split(",")
         amount = msg_list[1]
         print("Buy " + amount + " pls!")
         # Send client msg back
+        print("from_uid", from_uid)
 
         if self.leader:
             print("Will buy")
@@ -140,8 +141,9 @@ class Server:
             self.proposal_val = amount
             self.send_accepts()
         else:
-            self.send_data_to_others(msg)
-            print("Have to relay to leader")
+            if from_uid not in self.get_server_uids():
+                self.send_data_to_others(msg)
+                print("Have to relay to leader")
 
     def recv_show(self, msg_list):
         # Must use a full Paxos instance to gain consensus on most uptdated state
@@ -178,6 +180,12 @@ class Server:
             self.send_data(data, addr)
             self.client_requests = None
 
+    def get_server_uids(self):
+        uids = []
+        for identifier, addr in cluster.items():
+            uids.append(addr[1])
+        return uids
+
     def listen(self):
         print("Listening")
         while True:
@@ -192,7 +200,8 @@ class Server:
                 print("msg_list", msg_list)
 
             if command == "buy":
-                self.recv_buy(msg)
+                uid = addr[1]
+                self.recv_buy(msg, addr)
 
             elif command == "show":
                 self.recv_show(msg_list)
