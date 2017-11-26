@@ -118,22 +118,15 @@ class Server:
         data = "learn,{},{},{}".format(proposal_num, proposal_id, self.proposal_val)
         self.send_data_to_all(data)
 
-    def commit_to_log(self, msg):
-        msg_list = msg.split(",")
-        record = msg_list[1:]
-        self.log.append(record)
-
-        if self.client_requests and self.client_requests[1] == record[2]:
-            '''
-            Compare log val with val to be commited
-            Send responce to user if same
-            '''
-            port = int(self.client_requests[2])
-            addr = ("localhost", port)
-            tickets = "Here's your " + record[2] + " ticket(s)"
-            self.send_data(tickets, addr)
-            self.client_requests = None
-        print("log", self.log)
+    def validate_transaction(self, msg_list):
+        tickets = msg_list[3]
+        if tickets.isdigit():  # Not None
+            new_ticket_balance = self.tickets_available - int(tickets)
+            if new_ticket_balance >= 0:
+                self.tickets_available = new_ticket_balance
+                print(str(self.tickets_available) + " left")
+                self.log.append(msg_list[1:])
+            self.send_client_response(msg_list, new_ticket_balance)
 
     def recv_buy(self, msg):
         msg_list = msg.split(",")
@@ -157,14 +150,6 @@ class Server:
         log_str = ",".join(map(str, self.log))
         self.send_data(log_str, addr)
 
-    def respond_not_enough_tickets(self, msg_list):
-        if self.client_requests:
-            port = int(self.client_requests[2])
-            addr = ("localhost", port)
-            data = "Could not buy " + self.client_requests[1] + " ticket(s)"
-            self.send_data(data, addr)
-            self.client_requests = None
-
     def send_data(self, data, addr):
         msg = bytes(data, encoding="ascii")
         self.sock.sendto(msg, addr)
@@ -179,6 +164,19 @@ class Server:
         for identifier, addr in cluster.items():
             if addr != self.server_addr:
                 self.send_data(data, addr)
+
+    def send_client_response(self, msg_list, new_ticket_balance):
+        tickets = msg_list[3]
+        if self.client_requests and self.client_requests[1] == tickets:
+            port = int(self.client_requests[2])
+            addr = ("localhost", port)
+
+            if new_ticket_balance >= 0:
+                data = "Here's your " + tickets + " ticket(s)"
+            else:
+                data = "Could not buy " + self.client_requests[1] + " ticket(s)"
+            self.send_data(data, addr)
+            self.client_requests = None
 
     def listen(self):
         print("Listening")
@@ -213,17 +211,7 @@ class Server:
 
             # Phase 3
             elif command == "learn":
-                tickets = msg_list[3]
-                print(tickets)
-                if tickets.isdigit():
-                    if self.tickets_available - int(tickets) > 0:
-                        self.tickets_available -= int(tickets)
-                        print(str(self.tickets_available) + " left")
-
-                        self.commit_to_log(msg)
-                    else:
-                        # Respond not enough tickets left
-                        self.respond_not_enough_tickets(msg)
+                self.validate_transaction(msg_list)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
