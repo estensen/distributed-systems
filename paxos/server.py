@@ -1,4 +1,5 @@
 import socket
+import ast
 from threading import Thread
 from random import random
 from math import ceil
@@ -18,7 +19,8 @@ class Server:
         self.last_recv_heartbeat = None
         self.server_addr = server_addr
 
-        self.tickets_available = 20
+        self.init_tickets_available = 100
+        self.tickets_available = self.init_tickets_available
         self.client_requests = None
 
         self.proposal_id = (0, 0)
@@ -83,12 +85,17 @@ class Server:
 
     def send_accepts(self):
         self.recv_accepted_uid = set()
-        data = "accept,{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val)
+        data = "accept,{},{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val, len(self.log))
         self.send_data_to_all(data)
 
     def recv_accept(self, msg_list):
-        proposal_num, proposer_id, proposal_val = msg_list[1:]
+        proposal_num, proposer_id, proposal_val, leader_log_len = msg_list[1:]
         proposal_id = (int(proposal_num), int(proposer_id))
+
+        log_diff = int(leader_log_len) - len(self.log)
+        print("log_diff", log_diff)
+        if log_diff > 0:
+            self.request_missing_bytes(int(leader_log_len))
 
         if proposal_id >= self.promised_id:
             # Accept proposal
@@ -124,6 +131,7 @@ class Server:
         self.send_data_to_all(data)
 
     def validate_transaction(self, msg_list):
+        # Compare log length
         tickets = msg_list[3]
         if tickets.isdigit():  # Not None
             new_ticket_balance = self.tickets_available - int(tickets)
@@ -132,6 +140,30 @@ class Server:
                 print(str(self.tickets_available) + " left")
                 self.log.append(msg_list[1:])
             self.send_client_response(msg_list, new_ticket_balance)
+
+    def request_missing_bytes(self, leader_log_len):
+        from_index = len(self.log)
+        to_index = leader_log_len
+        data = "missing,{},{},{}".format(from_index, to_index, self.uid)
+        self.send_data_to_others(data)
+
+    def send_log(self, msg_list):
+        if self.leader:
+            from_index, to_index, from_uid = msg_list[1:]
+            log_str = ",".join(map(str, self.log))
+            data = "log,{},{},{}".format(from_index, to_index, log_str)
+            addr = ("localhost", int(from_uid))
+            self.send_data(data, addr)
+
+    def sync_log(self, msg):
+        from_index, to_index =msg.split(",")[1:3]
+        log_index_start = msg.index("[")
+        log_elements = msg[log_index_start:]
+        log_list = ast.literal_eval(log_elements)
+        self.tickets_available = self.init_tickets_available
+        for el in log_list:
+            self.tickets_available -= int(el[2])
+            self.log.append(el)
 
     def recv_buy(self, msg, from_uid):
         msg_list = msg.split(",")
@@ -223,6 +255,12 @@ class Server:
             # Phase 3
             elif command == "learn":
                 self.validate_transaction(msg_list)
+
+            elif command == "missing":
+                self.send_log(msg_list)
+
+            elif command == "log":
+                self.sync_log(msg)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
