@@ -47,7 +47,7 @@ class Client:
         while True:
             data, addr = self.client_sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
-            print(msg)
+            print("\n" + msg)
 
     def user_input(self):
         while True:
