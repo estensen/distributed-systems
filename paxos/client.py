@@ -4,6 +4,7 @@ from threading import Thread
 from config import cluster
 
 BUFFER_SIZE = 1024
+threads = []
 
 class Client:
     def __init__(self):
@@ -35,6 +36,7 @@ class Client:
         elif command == "buy" and arg.isdigit():
             self.send_msg("{},{},{}".format(command, arg, self.client_addr[1]))
         elif command == "change":
+            # Kill listen_thread before changing server_sock
             self.server_sock.close()
             self.client_sock.close()
             self.socket_setup()
@@ -54,9 +56,11 @@ class Client:
 
     def thread_setup(self):
         listen_thread = Thread(target=self.listen)
+        threads.append(listen_thread)
         listen_thread.start()
 
         input_thread = Thread(target=self.user_input)
+        threads.append(input_thread)
         input_thread.start()
 
 def run():
