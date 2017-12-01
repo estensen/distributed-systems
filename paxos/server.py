@@ -24,7 +24,6 @@ class Server:
         self.client_requests = None
 
         self.proposal_id = (0, 0)
-        # = 0?
         self.proposal_val = None
         self.next_proposal_num = 1
         self.last_accepted_num = 0
@@ -183,7 +182,7 @@ class Server:
         # Must use a full Paxos instance to gain consensus on most uptdated state
         addr = ("localhost", int(msg_list[1]))
         # Send local log to client
-        log_str = ",".join(map(str, self.log))
+        log_str = str(self.tickets_available) + "," + ",".join(map(str, self.log))
         self.send_data(log_str, addr)
 
     def send_data(self, data, addr):

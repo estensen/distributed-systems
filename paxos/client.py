@@ -1,4 +1,5 @@
 import socket
+import ast
 from time import sleep
 from threading import Thread
 from config import cluster
@@ -47,7 +48,13 @@ class Client:
         while True:
             data, addr = self.client_sock.recvfrom(BUFFER_SIZE)
             msg = data.decode("utf-8")
-            print("\n" + msg)
+
+            if msg[0].isdigit():
+                msg_list = ast.literal_eval(msg)
+                for line in msg_list:
+                    print(line)
+            else:
+                print(msg)
 
     def user_input(self):
         while True:
