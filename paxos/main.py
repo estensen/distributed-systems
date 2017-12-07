@@ -10,7 +10,14 @@ def setup(Server):
     # Create socket to receive msgs from other datacenters
     print("Cluster", cluster)
     identifier = input("Pick an address (A, B or C): ")
-    server_addr = cluster[identifier]
+
+    if identifier not in cluster:
+        ip = input("IP: ")
+        port = int(input("Port: "))
+        server_addr = (ip, port)
+    else:
+        server_addr = cluster[identifier]
+
     server = Server(server_addr)
 
     return server
