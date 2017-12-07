@@ -8,16 +8,18 @@ from config import cluster
 
 BUFFER_SIZE = 1024
 threads = []
-QUORUM_SIZE = ceil(len(cluster) / 2)  # (n / 2) + 1
+quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
 HEARTBEAT_FREQ = 0.4
 heartbeat_delta = HEARTBEAT_FREQ * 2 + random() * 3
 
 class Server:
-    def __init__(self, server_addr):
+    def __init__(self, identifier, server_addr):
         self.uid = server_addr[1]
         self.leader = False
         self.last_recv_heartbeat = None
+        self.identifier = identifier
         self.server_addr = server_addr
+        self.cluster = cluster
 
         self.init_tickets_available = 100
         self.tickets_available = self.init_tickets_available
@@ -78,7 +80,7 @@ class Server:
 
         self.recv_promises_uid.add(from_uid)
         if not self.leader:
-            if len(self.recv_promises_uid) >= QUORUM_SIZE:
+            if len(self.recv_promises_uid) >= quorum_size:
                 self.recv_promises_uid = set()
                 self.send_accepts()
 
@@ -114,7 +116,7 @@ class Server:
         proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
         self.recv_accepted_uid.add(from_uid)
 
-        if len(self.recv_accepted_uid) >= QUORUM_SIZE:
+        if len(self.recv_accepted_uid) >= quorum_size:
             self.recv_accepted_uid = set()
             if not self.leader:
                 self.leader = True
@@ -164,6 +166,20 @@ class Server:
             self.tickets_available -= int(el[2])
             self.log.append(el)
 
+    def config_change(self, msg_list):
+        # Add port to cluster
+        # quorum_size will not be constant anymore
+        print("New node added to cluster")
+        identifier, ip, port = msg_list[1:]
+        self.cluster[identifier] = (ip, int(port))
+
+    def recv_new_node(self, msg_list):
+        msg = "change," + ",".join(msg_list[1:])
+        if self.leader:
+            addr = (msg_list[2], int(msg_list[3]))
+            self.send_data("heartbeat", addr)  # Fast so the new node doesn't start an election
+            self.send_data_to_all(msg)
+
     def recv_buy(self, msg, from_uid):
         msg_list = msg.split(",")
         amount = msg_list[1]
@@ -192,11 +208,11 @@ class Server:
             print("Message {} sent to {}".format(data, addr))
 
     def send_data_to_all(self, data):
-        for identifier, addr in cluster.items():
+        for identifier, addr in self.cluster.items():
             self.send_data(data, addr)
 
     def send_data_to_others(self, data):
-        for identifier, addr in cluster.items():
+        for identifier, addr in self.cluster.items():
             if addr != self.server_addr:
                 self.send_data(data, addr)
 
@@ -213,9 +229,14 @@ class Server:
             self.send_data(data, addr)
             self.client_requests = None
 
+    def send_add_node(self):
+        msg = "node,{},{},{}".format(self.identifier, self.server_addr[0], self.uid)
+        self.send_data_to_others(msg)
+        print("Try to join cluster")
+
     def get_server_uids(self):
         uids = []
-        for identifier, addr in cluster.items():
+        for identifier, addr in self.cluster.items():
             uids.append(addr[1])
         return uids
 
@@ -232,10 +253,10 @@ class Server:
                 print("Received {} from {}".format(msg, addr))
                 print("msg_list", msg_list)
 
+            # Client commands
             if command == "buy":
                 uid = addr[1]
                 self.recv_buy(msg, uid)
-
             elif command == "show":
                 self.recv_show(msg_list)
 
@@ -258,8 +279,15 @@ class Server:
             elif command == "missing":
                 self.send_log(msg_list)
 
+
             elif command == "log":
                 self.sync_log(msg)
+
+            elif command == "node":
+                self.recv_new_node(msg_list)
+
+            elif command == "change":
+                self.config_change(msg_list)
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
@@ -301,6 +329,9 @@ class Server:
         listen_heartbeats_thread = Thread(target=self.listen_for_heartbeats)
         threads.append(listen_heartbeats_thread)
         listen_heartbeats_thread.start()
+
+        if self.identifier not in self.cluster:
+            self.send_add_node()
 
     def run(self):
         pass
