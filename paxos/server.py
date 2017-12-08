@@ -220,6 +220,7 @@ class Server:
         tickets = msg_list[3]
         if self.client_requests and self.client_requests[1] == tickets:
             port = int(self .client_requests[2])
+            addr = (addr[0], port)
 
             if new_ticket_balance >= 0:
                 data = "Here's your " + tickets + " ticket(s)"
