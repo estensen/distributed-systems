@@ -14,7 +14,14 @@ class Client:
 
     def socket_setup(self):
         self.identifier = input("Which datacenter do you want to connect to? (A, B or C) ")
-        self.server_addr = cluster[self.identifier]
+
+        if self.identifier not in cluster:
+            ip = input("IP: ")
+            port = int(input("Port: "))
+            self.server_addr = (ip, port)
+        else:
+            self.server_addr = cluster[self.identifier]
+
         self.client_addr = (self.server_addr[0], self.server_addr[1] + 10)
 
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
