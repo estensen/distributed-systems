@@ -148,7 +148,7 @@ class Server:
         if self.leader:
             from_index, to_index, from_uid = msg_list[1:]
             log_str = ",".join(map(str, self.log))
-            data = "log,{},{},{}".format(from_index, to_index, log_str)
+            data = "log," + log_str
             addr = (addr[0], int(from_uid))
             self.send_data(data, addr)
 
@@ -176,8 +176,10 @@ class Server:
     def recv_new_node(self, msg_list):
         msg = "change," + ",".join(msg_list[1:])
         if self.leader:
-            addr = (msg_list[2], int(msg_list[3]))
+            port = int(msg_list[3])
+            addr = (msg_list[2], port)
             self.send_data("heartbeat", addr)  # Fast so the new node doesn't start an election
+            self.send_log(addr, [0, 0, port])
             self.send_data_to_all(msg)
 
     def recv_buy(self, msg, from_uid):
