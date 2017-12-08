@@ -157,21 +157,27 @@ class Server:
             self.send_data(data, addr)
 
     def sync_log(self, msg):
-        from_index, to_index =msg.split(",")[1:3]
+        #from_index, to_index = msg.split(",")[1:3]
         log_index_start = msg.index("[")
         log_elements = msg[log_index_start:]
         log_list = ast.literal_eval(log_elements)
         self.tickets_available = self.init_tickets_available
         for el in log_list:
-            self.tickets_available -= int(el[2])
-            self.log.append(el)
+            if el[0].isdigit():
+                self.tickets_available -= int(el[2])
+                self.log.append(el)
+            else:
+                print("## Need config change")
+                self.config_change(el)
 
     def config_change(self, msg_list):
         # Add port to cluster
         # quorum_size will not be constant anymore
+        print("msg_list", msg_list)
         print("New node added to cluster")
-        identifier, ip, port = msg_list[1:]
-        self.cluster[identifier] = (ip, int(port))
+        identifier, ip, port = msg_list
+        self.cluster[identifier] = (str(ip), int(port))
+        self.log.append(msg_list)
 
     def recv_new_node(self, msg_list):
         msg = "change," + ",".join(msg_list[1:])
@@ -287,7 +293,7 @@ class Server:
                 self.recv_new_node(msg_list)
 
             elif command == "change":
-                self.config_change(msg_list)
+                self.config_change(msg_list[1:])
 
             elif command == "heartbeat":
                 self.last_recv_heartbeat = time()
