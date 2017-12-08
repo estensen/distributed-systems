@@ -36,7 +36,6 @@ class Server:
 
         self.log = []
         self.setup()
-        self.run()
 
     def set_proposal(self, val):
         if self.proposal_val == None:
@@ -198,6 +197,7 @@ class Server:
     def recv_show(self, addr, msg_list):
         # Must use a full Paxos instance to gain consensus on most uptdated state
         # Send local log to client
+        addr = (addr[0], int(msg_list[1]))
         log_str = str(self.tickets_available) + "," + ",".join(map(str, self.log))
         self.send_data(log_str, addr)
 
@@ -331,6 +331,3 @@ class Server:
 
         if self.identifier not in self.cluster:
             self.send_add_node()
-
-    def run(self):
-        pass
