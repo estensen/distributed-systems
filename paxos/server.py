@@ -8,7 +8,7 @@ from config import cluster
 
 BUFFER_SIZE = 1024
 threads = []
-quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
+
 HEARTBEAT_FREQ = 0.4
 heartbeat_delta = HEARTBEAT_FREQ * 2 + random() * 3
 
@@ -20,6 +20,7 @@ class Server:
         self.identifier = identifier
         self.server_addr = server_addr
         self.cluster = cluster
+        self.quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
 
         self.init_tickets_available = 100
         self.tickets_available = self.init_tickets_available
@@ -80,7 +81,7 @@ class Server:
 
         self.recv_promises_uid.add(from_uid)
         if not self.leader:
-            if len(self.recv_promises_uid) >= quorum_size:
+            if len(self.recv_promises_uid) >= self.quorum_size:
                 self.recv_promises_uid = set()
                 self.send_accepts()
 
@@ -116,7 +117,7 @@ class Server:
         proposal_num, proposer_id, from_uid, proposal_val = msg_list[1:]
         self.recv_accepted_uid.add(from_uid)
 
-        if len(self.recv_accepted_uid) >= quorum_size:
+        if len(self.recv_accepted_uid) >= self.quorum_size:
             self.recv_accepted_uid = set()
             if not self.leader:
                 self.leader = True
@@ -177,6 +178,7 @@ class Server:
         print("New node added to cluster")
         identifier, ip, port = msg_list
         self.cluster[identifier] = (str(ip), int(port))
+        self.quorum_size = ceil(len(cluster) / 2)
         self.log.append(msg_list)
 
     def recv_new_node(self, msg_list):
