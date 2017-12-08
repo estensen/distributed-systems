@@ -19,16 +19,11 @@ def setup(Server):
         server_addr = cluster[identifier]
 
     server = Server(identifier, server_addr)
-
     return server
 
 
 def run():
     server = setup(Server)
-
-    #while True:
-    #    data = input("Send msg: ")
-    #    server.send_data_to_all(data)
 
 
 if __name__ == "__main__":
