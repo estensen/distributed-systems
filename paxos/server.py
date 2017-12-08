@@ -51,7 +51,7 @@ class Server:
         data = "prepare,{},{}".format(proposal_num, proposal_id)
         self.send_data_to_all(data)
 
-    def recv_prepare(self, msg_list):
+    def recv_prepare(self, addr, msg_list):
         proposal_num, proposer_id = msg_list[1:]
         proposal_id = (int(proposal_num), int(proposer_id))
         if proposal_id >= self.promised_id:
@@ -67,8 +67,7 @@ class Server:
                 self.last_accepted_val
             )
 
-            from_addr = ("localhost", int(proposal_id[1]))
-            self.send_data(promise_msg, from_addr)
+            self.send_data(promise_msg, addr)
             print("Returned promise")
 
     def recv_promise(self, msg_list):
@@ -90,7 +89,7 @@ class Server:
         data = "accept,{},{},{},{}".format(self.proposal_id[0], self.proposal_id[1], self.proposal_val, len(self.log))
         self.send_data_to_all(data)
 
-    def recv_accept(self, msg_list):
+    def recv_accept(self, addr, msg_list):
         proposal_num, proposer_id, proposal_val, leader_log_len = msg_list[1:]
         proposal_id = (int(proposal_num), int(proposer_id))
 
@@ -105,12 +104,12 @@ class Server:
             self.last_accepted_proposer_id = proposer_id
             self.last_accepted_val = proposal_val
 
-            self.send_accept()
+            self.send_accept(addr)
 
-    def send_accept(self):
+    def send_accept(self, addr):
         accepted_data = "accepted,{},{},{},{}".format(self.last_accepted_num, \
             self.last_accepted_proposer_id, self.uid, self.last_accepted_val)
-        to_addr = ("localhost", int(self.last_accepted_proposer_id))
+        to_addr = (addr[0], int(self.last_accepted_proposer_id))
         self.send_data(accepted_data, to_addr)
 
     def recv_accepted(self, msg_list):
@@ -132,7 +131,7 @@ class Server:
         self.proposal_val = None
         self.send_data_to_all(data)
 
-    def validate_transaction(self, msg_list):
+    def validate_transaction(self, addr, msg_list):
         # Compare log length
         tickets = msg_list[3]
         if tickets.isdigit():  # Not None
@@ -141,7 +140,7 @@ class Server:
                 self.tickets_available = new_ticket_balance
                 print(str(self.tickets_available) + " left")
                 self.log.append(msg_list[1:])
-            self.send_client_response(msg_list, new_ticket_balance)
+            self.send_client_response(addr, msg_list, new_ticket_balance)
 
     def request_missing_bytes(self, leader_log_len):
         from_index = len(self.log)
@@ -149,12 +148,12 @@ class Server:
         data = "missing,{},{},{}".format(from_index, to_index, self.uid)
         self.send_data_to_others(data)
 
-    def send_log(self, msg_list):
+    def send_log(self, addr, msg_list):
         if self.leader:
             from_index, to_index, from_uid = msg_list[1:]
             log_str = ",".join(map(str, self.log))
             data = "log,{},{},{}".format(from_index, to_index, log_str)
-            addr = ("localhost", int(from_uid))
+            addr = (addr[0], int(from_uid))
             self.send_data(data, addr)
 
     def sync_log(self, msg):
@@ -202,9 +201,8 @@ class Server:
                 self.send_data_to_others(msg)
                 print("Have to relay to leader")
 
-    def recv_show(self, msg_list):
+    def recv_show(self, addr, msg_list):
         # Must use a full Paxos instance to gain consensus on most uptdated state
-        addr = ("localhost", int(msg_list[1]))
         # Send local log to client
         log_str = str(self.tickets_available) + "," + ",".join(map(str, self.log))
         self.send_data(log_str, addr)
@@ -224,11 +222,10 @@ class Server:
             if addr != self.server_addr:
                 self.send_data(data, addr)
 
-    def send_client_response(self, msg_list, new_ticket_balance):
+    def send_client_response(self, addr, msg_list, new_ticket_balance):
         tickets = msg_list[3]
         if self.client_requests and self.client_requests[1] == tickets:
-            port = int(self.client_requests[2])
-            addr = ("localhost", port)
+            port = int(self .client_requests[2])
 
             if new_ticket_balance >= 0:
                 data = "Here's your " + tickets + " ticket(s)"
@@ -266,26 +263,26 @@ class Server:
                 uid = addr[1]
                 self.recv_buy(msg, uid)
             elif command == "show":
-                self.recv_show(msg_list)
+                self.recv_show(addr, msg_list)
 
             # Phase 1
             elif command == "prepare":
-                self.recv_prepare(msg_list)
+                self.recv_prepare(addr, msg_list)
             elif command == "promise":
                 self.recv_promise(msg_list)
 
             # Phase 2
             elif command == "accept":
-                self.recv_accept(msg_list)
+                self.recv_accept(addr, msg_list)
             elif command == "accepted":
                 self.recv_accepted(msg_list)
 
             # Phase 3
             elif command == "learn":
-                self.validate_transaction(msg_list)
+                self.validate_transaction(addr, msg_list)
 
             elif command == "missing":
-                self.send_log(msg_list)
+                self.send_log(addr, msg_list)
 
 
             elif command == "log":

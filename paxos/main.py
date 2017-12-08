@@ -12,8 +12,7 @@ def setup(Server):
     identifier = input("Pick an address (A, B or C): ")
 
     if identifier not in cluster:
-        #ip = input("IP: ")
-        ip = "127.0.0.1"
+        ip = input("IP: ")
         port = int(input("Port: "))
         server_addr = (ip, port)
     else:
