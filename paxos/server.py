@@ -20,7 +20,7 @@ class Server:
         self.identifier = identifier
         self.server_addr = server_addr
         self.cluster = cluster
-        self.quorum_size = ceil(len(cluster) / 2)  # (n / 2) + 1
+        self.quorum_size = ceil(len(cluster) / 2)
 
         self.init_tickets_available = 100
         self.tickets_available = self.init_tickets_available
@@ -55,7 +55,6 @@ class Server:
         proposal_num, proposer_id = msg_list[1:]
         proposal_id = (int(proposal_num), int(proposer_id))
         if proposal_id >= self.promised_id:
-            # Higher than current promise
             self.promised_id = proposal_id
 
             promise_msg = "promise,{},{},{},{},{},{}".format(
@@ -75,7 +74,6 @@ class Server:
         last_accepted_proposer_id, last_accepted_val = msg_list[1:]
 
         if self.proposal_id < (int(last_accepted_num), int(last_accepted_proposer_id)):
-            # An acceptor has already accepted a val
             self.proposal_val = last_accepted_val
 
         self.recv_promises_uid.add(from_uid)
@@ -99,7 +97,6 @@ class Server:
             self.request_missing_bytes(int(leader_log_len))
 
         if proposal_id >= self.promised_id:
-            # Accept proposal
             self.last_accepted_num = proposal_num
             self.last_accepted_proposer_id = proposer_id
             self.last_accepted_val = proposal_val
@@ -134,7 +131,7 @@ class Server:
     def validate_transaction(self, addr, msg_list):
         # Compare log length
         tickets = msg_list[3]
-        if tickets.isdigit():  # Not None
+        if tickets.isdigit():
             new_ticket_balance = self.tickets_available - int(tickets)
             if new_ticket_balance >= 0:
                 self.tickets_available = new_ticket_balance
@@ -157,7 +154,6 @@ class Server:
             self.send_data(data, addr)
 
     def sync_log(self, msg):
-        #from_index, to_index = msg.split(",")[1:3]
         log_index_start = msg.index("[")
         log_elements = msg[log_index_start:]
         log_list = ast.literal_eval(log_elements)
@@ -171,8 +167,6 @@ class Server:
                 self.config_change(el)
 
     def config_change(self, msg_list):
-        # Add port to cluster
-        # quorum_size will not be constant anymore
         print("msg_list", msg_list)
         print("New node added to cluster")
         identifier, ip, port = msg_list
